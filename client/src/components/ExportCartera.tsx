@@ -2,6 +2,9 @@ import { utils, ColInfo, writeFile } from 'xlsx'
 import { CarteraI } from '../types/cartera'
 import { Button } from './ui'
 import { toast } from 'sonner'
+import { buildCarteraMessage, sendWhatsAppMessage } from '../services/whatsapp'
+import { useState } from 'react'
+import WhatsAppPhoneDialog from './WhatsAppPhoneDialog'
 
 const generateExcelData = (datos: CarteraI[]): unknown[] => {
   const titulo = [{ A: 'Reporte Cartera ' }]
@@ -70,7 +73,9 @@ const createExcelFile = (data: unknown[]): void => {
   writeFile(libro, 'ReporteCartera.xlsx')
 }
 
-export const BottonExporCartera = ({ datos }: { datos: CarteraI[] }): JSX.Element => {
+export const BottonExporCartera = ({ datos, showWhatsAppAction = false }: { datos: CarteraI[], showWhatsAppAction?: boolean }): JSX.Element => {
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const handleDownload = (): void => {
     const dataFinal = generateExcelData(datos)
 
@@ -92,9 +97,38 @@ export const BottonExporCartera = ({ datos }: { datos: CarteraI[] }): JSX.Elemen
     })
   }
 
+  const handleSendWhatsApp = async (phone: string): Promise<void> => {
+    const promises = sendWhatsAppMessage({
+      phone,
+      message: buildCarteraMessage(datos)
+    })
+
+    toast.promise(promises, {
+      loading: 'Enviando por WhatsApp ...',
+      success: 'Mensaje enviado correctamente',
+      error: 'No fue posible enviar el mensaje'
+    })
+  }
+
   return (
-    <Button onClick={handleDownload}>
-      Exportar a Excel
-    </Button>
+    <div className="flex gap-2">
+      <Button onClick={handleDownload}>
+        Exportar a Excel
+      </Button>
+      {showWhatsAppAction && (
+        <>
+          <Button variant="secondary" onClick={() => setDialogOpen(true)}>
+            Enviar por WhatsApp
+          </Button>
+          <WhatsAppPhoneDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            onSend={handleSendWhatsApp}
+            title='Enviar cartera por WhatsApp'
+            description='Ingresa el número al que quieres enviar el reporte de cartera.'
+          />
+        </>
+      )}
+    </div>
   )
 }

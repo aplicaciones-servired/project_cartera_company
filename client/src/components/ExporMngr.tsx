@@ -2,6 +2,9 @@ import { MngrReport, Seller } from '../types/cartera'
 import { utils, ColInfo, writeFile } from 'xlsx'
 import { Button } from './ui'
 import { toast } from 'sonner'
+import { buildManagerMessage, sendWhatsAppMessage } from '../services/whatsapp'
+import { useState } from 'react'
+import WhatsAppPhoneDialog from './WhatsAppPhoneDialog'
 
 const generateExcelData = (datos: MngrReport[], initial: number, base: number, info: Seller | undefined): unknown[] => {
   const date = new Date().toLocaleDateString().split('/').reverse().join('-')
@@ -54,9 +57,11 @@ const createExcelFile = (data: unknown[]): void => {
   writeFile(libro, 'ReporteCarteraManager.xlsx')
 }
 
-export const BottonExporCarteraMngr = ({ datos, initial, base, info }: {
-  datos: MngrReport[], initial: number, base: number, info: Seller | undefined
+export const BottonExporCarteraMngr = ({ datos, initial, base, info, showWhatsAppAction = false }: {
+  datos: MngrReport[], initial: number, base: number, info: Seller | undefined, showWhatsAppAction?: boolean
 }): JSX.Element => {
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const handleDownload = (): void => {
     const dataFinal = generateExcelData(datos, initial, base, info)
 
@@ -78,9 +83,38 @@ export const BottonExporCarteraMngr = ({ datos, initial, base, info }: {
     })
   }
 
+  const handleSendWhatsApp = async (phone: string): Promise<void> => {
+    const promises = sendWhatsAppMessage({
+      phone,
+      message: buildManagerMessage(datos, initial, base, info)
+    })
+
+    toast.promise(promises, {
+      loading: 'Enviando por WhatsApp ...',
+      success: 'Mensaje enviado correctamente',
+      error: 'No fue posible enviar el mensaje'
+    })
+  }
+
   return (
-    <Button onClick={handleDownload}>
-      Exportar a Excel
-    </Button>
+    <div className="flex gap-2">
+      <Button onClick={handleDownload}>
+        Exportar a Excel
+      </Button>
+      {showWhatsAppAction && (
+        <>
+          <Button variant="secondary" onClick={() => setDialogOpen(true)}>
+            Enviar por WhatsApp
+          </Button>
+          <WhatsAppPhoneDialog
+            open={dialogOpen}
+            onOpenChange={setDialogOpen}
+            onSend={handleSendWhatsApp}
+            title='Enviar cartera manager por WhatsApp'
+            description='Ingresa el número al que quieres enviar el reporte manager.'
+          />
+        </>
+      )}
+    </div>
   )
 }

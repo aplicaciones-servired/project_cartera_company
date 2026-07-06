@@ -16,6 +16,7 @@ const SeleccionReportes = lazy(() => import('../pages/SeleccionReportes'))
 const ReportRecaudos = lazy(() => import('../pages/ReportRecaudos'))
 const ReportMngr = lazy(() => import('../pages/ReportMngr'))
 const ReportMngrV2 = lazy(() => import('../pages/ReportMngrV2'))
+const ReportesWhatsApp = lazy(() => import('../pages/ReportesWhatsApp'))
 
 const router = createBrowserRouter([
   {
@@ -108,6 +109,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Loading />}>
             <ReportRecaudos />
+          </Suspense>
+        )
+      },
+      {
+        path: '/ReportesWhatsApp',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <ReportesWhatsApp />
           </Suspense>
         )
       },

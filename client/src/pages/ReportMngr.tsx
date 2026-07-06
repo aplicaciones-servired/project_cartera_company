@@ -2,12 +2,14 @@ import { Badge, Button, Card, Input, Label, Table, TableBody, TableCell, TableFo
 import { BottonExporCarteraMngr } from '../components/ExporMngr'
 import { formatValue } from '../utils/funtions'
 import { FormEvent, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { Response } from '../types/cartera'
 import { API_URL } from '../utils/contanst'
 import axios from 'axios'
 import { toast } from 'sonner'
 
 export default function ReportMngr () {
+  const location = useLocation()
   const [data, setData] = useState<Response | null>(null)
   const [documento, setDocumento] = useState<string>('')
   const [fecha1, setFecha1] = useState<string>('')
@@ -42,6 +44,9 @@ export default function ReportMngr () {
   const saldoInicial = data?.CarteraInicial.SALDO_ANT || 0
   const base = data?.base || 0
   const total = sumaIngresos + saldoInicial - sumaEgresos - sumaAbonos - base
+  const showWhatsAppAction =
+    Boolean((location.state as { fromWhatsAppMenu?: boolean } | null)?.fromWhatsAppMenu) ||
+    new URLSearchParams(location.search).get('source') === 'whatsapp'
 
   return (
     <>
@@ -100,7 +105,7 @@ export default function ReportMngr () {
         <p>Nombre: {data?.Seller.NOMBRES}</p>
         <p>Cargo: {data?.Seller.NOMBRECARGO}</p>
         <p>Empresa:<span className='px-1'>{data?.Seller.CCOSTO === '39632' ? 'SERVIRED' : 'MULTIRED'}</span></p>
-        <BottonExporCarteraMngr datos={data?.cartera || []} initial={saldoInicial} base={base} info={data?.Seller}/>
+        <BottonExporCarteraMngr datos={data?.cartera || []} initial={saldoInicial} base={base} info={data?.Seller} showWhatsAppAction={showWhatsAppAction}/>
       </Card>
       <Card className='mt-1'>
         <div className='flex justify-end'>
