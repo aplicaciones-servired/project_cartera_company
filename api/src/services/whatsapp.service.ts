@@ -167,8 +167,24 @@ const waitForWhatsAppReady = async (): Promise<void> => {
 const normalizePhone = (phone: string): string => {
   const digits = phone.replace(/\D/g, '')
 
-  if (digits.length === 10 && digits.startsWith('3')) {
-    return `57${digits}`
+  if (!digits) {
+    return ''
+  }
+
+  if (digits.startsWith('57') && digits.length > 2) {
+    return digits.slice(2)
+  }
+
+  if (digits.startsWith('0') && digits.length === 10) {
+    return digits.slice(1)
+  }
+
+  if (digits.length === 10) {
+    return digits
+  }
+
+  if (digits.length === 11 && digits.startsWith('3')) {
+    return digits.slice(1)
   }
 
   return digits

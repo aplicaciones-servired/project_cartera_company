@@ -1,3 +1,2 @@
-2026/07/06-16:12:44.784 62dc Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Session Storage/MANIFEST-000001
-2026/07/06-16:12:44.787 62dc Recovering log #3
-2026/07/06-16:12:44.797 62dc Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Session Storage/000003.log 
+2026/07/07-11:45:34.784 4470 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Session Storage since it was missing.
+2026/07/07-11:45:34.835 4470 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Session Storage/MANIFEST-000001

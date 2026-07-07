@@ -1,3 +1,2 @@
-2026/07/06-16:12:41.562 620c Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\shared_proto_db\metadata/MANIFEST-000001
-2026/07/06-16:12:41.566 620c Recovering log #3
-2026/07/06-16:12:41.568 620c Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\shared_proto_db\metadata/000003.log 
+2026/07/07-11:45:34.302 6900 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\shared_proto_db\metadata since it was missing.
+2026/07/07-11:45:34.312 6900 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\shared_proto_db\metadata/MANIFEST-000001

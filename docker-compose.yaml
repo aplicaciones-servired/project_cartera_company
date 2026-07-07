@@ -22,6 +22,7 @@ services:
       - red-gane-int
     environment:
       - TZ=America/Bogota
+      - VERSION=/api/cartera/v1
     # Healthcheck que verifica TANTO MySQL como Oracle
     # Si el pool de Oracle está agotado, el healthcheck falla y Docker reinicia el contenedor
     healthcheck:
