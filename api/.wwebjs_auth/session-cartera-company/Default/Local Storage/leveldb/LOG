@@ -1,6 +1,3 @@
-2026/07/06-14:24:09.557 4eac Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/MANIFEST-000001
-2026/07/06-14:24:09.570 4eac Recovering log #3
-2026/07/06-14:24:09.577 4eac Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/000003.log 
-2026/07/06-14:25:09.598 2ac4 Level-0 table #5: started
-2026/07/06-14:25:09.609 2ac4 Level-0 table #5: 20743 bytes OK
-2026/07/06-14:25:09.614 2ac4 Delete type=0 #3
+2026/07/06-16:12:39.965 62dc Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/MANIFEST-000001
+2026/07/06-16:12:39.983 62dc Recovering log #4
+2026/07/06-16:12:40.000 62dc Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/000004.log 

@@ -3,7 +3,14 @@ dist
 .env
 node-v22.5.1-linux-x64.tar.xz
 package-lock.json
-
+.md
+.html
 instantclient_11_2
 tnsnames.ora
 WHATSAPP_FUNCIONAMIENTO.md
+.wwebjs_cache
+_metadata
+Subresource Filter
+.wwebjs_auth
+session-cartera-company
+component_crx_cache
