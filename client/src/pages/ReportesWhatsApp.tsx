@@ -1,4 +1,4 @@
-import { RiWhatsappFill, RiFileChartFill, RiBarChartGroupedLine, RiCaravanLine } from '@remixicon/react'
+import { RiWhatsappFill, RiFileChartFill } from '@remixicon/react'
 import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
@@ -12,23 +12,23 @@ const cards = [
     route: '/reportMngrWsp',
     button: 'Abrir cartera',
     gradient: 'from-green-900 to-green-700'
-  },
-  {
-    title: 'Cartera V2',
-    description: 'Versión alternativa del reporte de cartera con la misma opción de envío por WhatsApp.',
-    icon: RiBarChartGroupedLine,
-    route: '/ReportMngrV2',
-    button: 'Abrir cartera V2',
-    gradient: 'from-emerald-900 to-emerald-700'
-  },
-  {
-    title: 'Recaudos',
-    description: 'Consulta recaudos y comparte el resultado por WhatsApp desde el reporte.',
-    icon: RiCaravanLine,
-    route: '/ReportRecaudos',
-    button: 'Abrir recaudos',
-    gradient: 'from-red-900 to-red-700'
   }
+  // {
+  //   title: 'Cartera V2',
+  //   description: 'Versión alternativa del reporte de cartera con la misma opción de envío por WhatsApp.',
+  //   icon: RiBarChartGroupedLine,
+  //   route: '/ReportMngrV2',
+  //   button: 'Abrir cartera V2',
+  //   gradient: 'from-emerald-900 to-emerald-700'
+  // },
+  // {
+  //   title: 'Recaudos',
+  //   description: 'Consulta recaudos y comparte el resultado por WhatsApp desde el reporte.',
+  //   icon: RiCaravanLine,
+  //   route: '/ReportRecaudos',
+  //   button: 'Abrir recaudos',
+  //   gradient: 'from-red-900 to-red-700'
+  // }
 ]
 
 export default function ReportesWhatsApp () {

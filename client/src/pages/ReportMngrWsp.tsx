@@ -1,4 +1,4 @@
-import { Badge, Button, Card, Input, Label, Table, TableBody, TableFoot, TableHead, TableHeaderCell, TableRoot, TableRow } from '../components/ui'
+import { Badge, Button, Card, Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Label, Table, TableBody, TableFoot, TableHead, TableHeaderCell, TableRoot, TableRow } from '../components/ui'
 import { formatValue } from '../utils/funtions'
 import { FormEvent, useMemo, useState } from 'react'
 import { API_URL } from '../utils/contanst'
@@ -52,9 +52,14 @@ export default function ReportMngrWsp () {
   const [dispatching, setDispatching] = useState<boolean>(false)
   const [selectedVinculados, setSelectedVinculados] = useState<number[]>([])
   const [companyFilter, setCompanyFilter] = useState<'all' | 'servired' | 'multired'>('all')
-  const [ccostoFilter, setCcostoFilter] = useState<'all' | '39629' | '39630' | '39631' | '39632'>('all')
   const [quickDocument, setQuickDocument] = useState<string>('')
-  const [quickPhone, setQuickPhone] = useState<string>('')
+  const [dialogOpen, setDialogOpen] = useState<boolean>(false)
+  const [contactCelular, setContactCelular] = useState<string>('')
+  const [contactTelefono, setContactTelefono] = useState<string>('')
+  const [contactEmail, setContactEmail] = useState<string>('')
+  const [contactDocAlterno, setContactDocAlterno] = useState<string>('')
+  const [contactNombreAlterno, setContactNombreAlterno] = useState<string>('')
+  const [contactCelAlterno, setContactCelAlterno] = useState<string>('')
   const [savingPhone, setSavingPhone] = useState<boolean>(false)
 
   const handleSubmit = async (ev: FormEvent) => {
@@ -160,8 +165,8 @@ export default function ReportMngrWsp () {
   }
 
   const handleSavePhone = async () => {
-    if (!quickDocument || !quickPhone) {
-      toast.error('Debe ingresar documento y teléfono')
+    if (!quickDocument || !contactCelular) {
+      toast.error('Documento y celular son obligatorios')
       return
     }
 
@@ -171,16 +176,26 @@ export default function ReportMngrWsp () {
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
         mode: 'upsert-contact',
         documento: quickDocument,
-        telefono: quickPhone
+        celular: contactCelular,
+        telefono: contactTelefono,
+        email: contactEmail,
+        docAlterno: contactDocAlterno,
+        nombreAlterno: contactNombreAlterno,
+        celAlterno: contactCelAlterno
       }, { timeout: 120000 })
 
       if (response.data?.success) {
-        toast.success('Teléfono guardado en INFOCONTACTO')
-        setQuickPhone('')
+        toast.success('Contacto guardado en INFOCONTACTO')
+        setDialogOpen(false)
+        setContactTelefono('')
+        setContactEmail('')
+        setContactDocAlterno('')
+        setContactNombreAlterno('')
+        setContactCelAlterno('')
       }
     } catch (error) {
       console.error(error)
-      toast.error('No fue posible guardar el teléfono')
+      toast.error('No fue posible guardar el contacto')
     } finally {
       setSavingPhone(false)
     }
@@ -231,11 +246,6 @@ export default function ReportMngrWsp () {
 
     if (companyFilter === 'servired' && itemCompany !== 'servired') return false
     if (companyFilter === 'multired' && itemCompany !== 'multired') return false
-
-    if (ccostoFilter !== 'all') {
-      const ccosto = String(item.ccosto || '').trim()
-      if (ccosto !== ccostoFilter) return false
-    }
 
     return true
   })
@@ -302,16 +312,16 @@ export default function ReportMngrWsp () {
         </form>
       </Card>
 
-      <Card className='mt-1 flex flex-wrap justify-between items-center gap-3'>
-        <div>
+      <Card className='mt-1 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between'>
+        <div className='max-w-xl'>
           <h1 className='font-semibold'>CARGA MASIVA DE CARTERAS</h1>
           <p className='text-sm text-gray-600'>Consulta varias carteras por fechas y, si hay contacto válido en INFOCONTACTO, puedes enviarlas por WhatsApp a las asesoras seleccionadas.</p>
         </div>
-        <div className='flex flex-wrap items-center gap-2'>
+        <div className='flex flex-wrap items-center gap-3'>
           <label className='flex items-center gap-2 text-sm'>
             <span>Empresa</span>
             <select
-              className='rounded border border-gray-300 px-2 py-1 text-sm'
+              className='rounded border border-gray-300 bg-white px-3 py-2 text-sm'
               value={companyFilter}
               onChange={(e) => {
                 setCompanyFilter(e.target.value as 'all' | 'servired' | 'multired')
@@ -323,41 +333,14 @@ export default function ReportMngrWsp () {
               <option value='multired'>Multired</option>
             </select>
           </label>
-          <label className='flex items-center gap-2 text-sm'>
-            <span>CC</span>
-            <select
-              className='rounded border border-gray-300 px-2 py-1 text-sm'
-              value={ccostoFilter}
-              onChange={(e) => {
-                setCcostoFilter(e.target.value as 'all' | '39629' | '39630' | '39631' | '39632')
-                setSelectedVinculados([])
-              }}
-            >
-              <option value='all'>Todos</option>
-              {companyFilter === 'servired' && <option value='39632'>39632 Jamundí</option>}
-              {companyFilter === 'multired' && (
-                <>
-                  <option value='39629'>39629 Yumbo</option>
-                  <option value='39630'>39630 Vijes</option>
-                  <option value='39631'>39631 La Cumbre</option>
-                </>
-              )}
-              {companyFilter === 'all' && (
-                <>
-                  <option value='39629'>39629 Yumbo</option>
-                  <option value='39630'>39630 Vijes</option>
-                  <option value='39631'>39631 La Cumbre</option>
-                  <option value='39632'>39632 Jamundí</option>
-                </>
-              )}
-            </select>
-          </label>
-          <Button type='button' disabled={!data?.bulk} onClick={toggleSelectAll}>
-            {selectedVinculados.length === filteredSummaries.length && filteredSummaries.length > 0 ? 'Quitar selección' : 'Seleccionar todas'}
-          </Button>
-          <Button type='button' disabled={dispatching || !data?.bulk} onClick={handleDispatch}>
-            {dispatching ? 'Enviando ...' : 'Enviar por WhatsApp'}
-          </Button>
+          <div className='flex flex-wrap items-center gap-2'>
+            <Button type='button' disabled={!data?.bulk} onClick={toggleSelectAll}>
+              {selectedVinculados.length === filteredSummaries.length && filteredSummaries.length > 0 ? 'Quitar selección' : 'Seleccionar todas'}
+            </Button>
+            <Button type='button' disabled={dispatching || !data?.bulk} onClick={handleDispatch}>
+              {dispatching ? 'Enviando ...' : 'Enviar por WhatsApp'}
+            </Button>
+          </div>
         </div>
       </Card>
 
@@ -373,9 +356,10 @@ export default function ReportMngrWsp () {
         </Card>
       )}
 
-      <Card className='mt-1 flex flex-wrap items-center gap-3'>
-        <div className='flex items-center gap-2'>
+      <Card className='mt-1 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between'>
+        <div className='flex flex-1 flex-wrap items-center gap-2'>
           <Input
+            className='min-w-[220px] flex-1'
             type='text'
             placeholder='Cédula para seleccionar'
             value={quickDocument}
@@ -383,18 +367,92 @@ export default function ReportMngrWsp () {
           />
           <Button type='button' onClick={handleQuickSelect}>Agregar selección</Button>
         </div>
-        <div className='flex items-center gap-2'>
-          <Input
-            type='text'
-            placeholder='Teléfono para INFOCONTACTO'
-            value={quickPhone}
-            onChange={(e) => setQuickPhone(e.target.value)}
-          />
-          <Button type='button' disabled={savingPhone} onClick={handleSavePhone}>
-            {savingPhone ? 'Guardando...' : 'Guardar teléfono'}
-          </Button>
-        </div>
+        <Button type='button' className='w-full sm:w-auto' onClick={() => setDialogOpen(true)}>
+          Abrir formulario INFOCONTACTO
+        </Button>
       </Card>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className='max-w-2xl'>
+          <DialogHeader>
+            <DialogTitle>Registrar contacto en INFOCONTACTO</DialogTitle>
+            <DialogDescription>Documento y celular son obligatorios. Resto de campos es opcional.</DialogDescription>
+          </DialogHeader>
+          <div className='grid gap-4 py-4'>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-documento'>Documento</Label>
+              <Input
+                id='contact-documento'
+                type='text'
+                value={quickDocument}
+                onChange={(e) => setQuickDocument(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-celular'>Celular</Label>
+              <Input
+                id='contact-celular'
+                type='text'
+                value={contactCelular}
+                onChange={(e) => setContactCelular(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-telefono'>Teléfono</Label>
+              <Input
+                id='contact-telefono'
+                type='text'
+                value={contactTelefono}
+                onChange={(e) => setContactTelefono(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-email'>Email</Label>
+              <Input
+                id='contact-email'
+                type='email'
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-docalterno'>Documento alterno</Label>
+              <Input
+                id='contact-docalterno'
+                type='text'
+                value={contactDocAlterno}
+                onChange={(e) => setContactDocAlterno(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-nombrealterno'>Nombre alterno</Label>
+              <Input
+                id='contact-nombrealterno'
+                type='text'
+                value={contactNombreAlterno}
+                onChange={(e) => setContactNombreAlterno(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-celalterno'>Celular alterno</Label>
+              <Input
+                id='contact-celalterno'
+                type='text'
+                value={contactCelAlterno}
+                onChange={(e) => setContactCelAlterno(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className='flex flex-col gap-3 sm:flex-row sm:justify-end'>
+            <DialogClose asChild>
+              <Button variant='secondary'>Cancelar</Button>
+            </DialogClose>
+            <Button disabled={savingPhone} onClick={handleSavePhone}>
+              {savingPhone ? 'Guardando...' : 'Guardar contacto'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Card className='mt-1'>
         {data?.bulk
