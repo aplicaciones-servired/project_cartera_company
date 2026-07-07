@@ -9,9 +9,9 @@ const cards = [
     title: 'Cartera',
     description: 'Abre el reporte de cartera y usa la opción Enviar por WhatsApp desde el botón de exportación.',
     icon: RiFileChartFill,
-    route: '/reportMngr',
+    route: '/reportMngrWsp',
     button: 'Abrir cartera',
-    gradient: 'from-green-900 to-green-700',
+    gradient: 'from-green-900 to-green-700'
   },
   {
     title: 'Cartera V2',
@@ -19,7 +19,7 @@ const cards = [
     icon: RiBarChartGroupedLine,
     route: '/ReportMngrV2',
     button: 'Abrir cartera V2',
-    gradient: 'from-emerald-900 to-emerald-700',
+    gradient: 'from-emerald-900 to-emerald-700'
   },
   {
     title: 'Recaudos',
@@ -27,8 +27,8 @@ const cards = [
     icon: RiCaravanLine,
     route: '/ReportRecaudos',
     button: 'Abrir recaudos',
-    gradient: 'from-red-900 to-red-700',
-  },
+    gradient: 'from-red-900 to-red-700'
+  }
 ]
 
 export default function ReportesWhatsApp () {
@@ -114,13 +114,16 @@ export default function ReportesWhatsApp () {
 
         <article className='rounded-2xl border border-amber-300 bg-amber-50 p-5 text-amber-900 shadow-md'>
           <p className='font-semibold'>Estado actual: {status}</p>
-          {status === 'authenticated' ? (
+          {status === 'authenticated'
+            ? (
             <p className='mt-2 text-amber-800'>
               El QR ya fue aceptado. Espera unos segundos a que WhatsApp termine de conectar.
             </p>
-          ) : null}
+              )
+            : null}
           {error ? <p className='mt-2'>Detalle: {error}</p> : null}
-          {qr ? (
+          {qr
+            ? (
             <div className='mt-4 flex flex-col items-start gap-3'>
               <img
                 src={qrImageUrl}
@@ -131,7 +134,8 @@ export default function ReportesWhatsApp () {
                 Si la imagen no carga, usa este valor temporal: {qr}
               </p>
             </div>
-          ) : null}
+              )
+            : null}
           <p className='mt-3'>
             Abre el endpoint de estado en el backend, escanea el QR desde WhatsApp y luego ve a Dispositivos vinculados, y vuelve aquí.
           </p>
