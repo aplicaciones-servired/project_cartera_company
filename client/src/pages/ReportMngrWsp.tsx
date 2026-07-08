@@ -141,6 +141,11 @@ export default function ReportMngrWsp () {
       : [...prev, vinculado])
   }
 
+  const removeVinculadoSelection = (vinculado: number) => {
+    setSelectedVinculados(prev => prev.filter(item => item !== vinculado))
+    toast.success(`Se quitó la selección ${vinculado}`)
+  }
+
   const toggleSelectAll = () => {
     const allIds = filteredSummaries.map(item => item.vinculado)
     const allSelected = allIds.length > 0 && allIds.every(id => selectedVinculados.includes(id))
@@ -160,8 +165,12 @@ export default function ReportMngrWsp () {
       return
     }
 
-    setSelectedVinculados(prev => prev.includes(match.vinculado) ? prev : [...prev, match.vinculado])
-    toast.success(`Se agregó la cartera ${match.vinculado} a la selección`)
+    if (!selectedVinculados.includes(match.vinculado)) {
+      setSelectedVinculados(prev => [...prev, match.vinculado])
+      toast.success(`Se agregó la cartera ${match.vinculado} a la selección`)
+    } else {
+      toast('La cartera ya estaba seleccionada')
+    }
   }
 
   const handleSavePhone = async () => {
@@ -321,11 +330,10 @@ export default function ReportMngrWsp () {
           <label className='flex items-center gap-2 text-sm'>
             <span>Empresa</span>
             <select
-              className='rounded border border-gray-300 bg-white px-3 py-2 text-sm'
+              className='rounded border border-gray-300 bg-white px-4 py-2 text-sm min-w-[200px]'
               value={companyFilter}
               onChange={(e) => {
                 setCompanyFilter(e.target.value as 'all' | 'servired' | 'multired')
-                setSelectedVinculados([])
               }}
             >
               <option value='all'>Todas</option>
@@ -371,6 +379,26 @@ export default function ReportMngrWsp () {
           Abrir formulario INFOCONTACTO
         </Button>
       </Card>
+
+      {selectedVinculados.length > 0 && (
+        <Card className='mt-2 flex flex-wrap items-center gap-2'>
+          <div className='flex items-center gap-2'>
+            <span className='text-sm font-medium'>Seleccionadas:</span>
+            {selectedVinculados.map((id) => (
+              <Badge key={`sel-${id}`} className='inline-flex items-center gap-2'>
+                <span>{id}</span>
+                <button
+                  type='button'
+                  onClick={() => removeVinculadoSelection(id)}
+                  className='ml-2 rounded px-1 text-xs text-red-600'
+                >
+                  x
+                </button>
+              </Badge>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className='max-w-2xl'>
