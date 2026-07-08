@@ -2,10 +2,12 @@ FROM node:lts-slim
 
 WORKDIR /app
 
-COPY . /app
+COPY package*.json ./
 
 # Instalar dependencias necesarias
-RUN apt-get update && apt-get install -y libaio1
+RUN apt-get update && apt-get install -y libaio1 && npm install
+
+COPY . /app
 
 # Configurar Oracle Instant Client
 RUN mkdir -p /opt/oracle && \
@@ -20,6 +22,9 @@ RUN mkdir -p /opt/oracle && \
 
 # Agregar Oracle Instant Client al PATH del sistema
 RUN echo "export LD_LIBRARY_PATH=/opt/oracle/instantclient_11_2:\$LD_LIBRARY_PATH" >> /etc/profile.d/oracle-instantclient.sh
+
+# Compilar TypeScript
+RUN npm run build
 
 EXPOSE 80
 
