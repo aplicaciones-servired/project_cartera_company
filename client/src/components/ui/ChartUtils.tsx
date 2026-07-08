@@ -98,14 +98,22 @@ const ScrollButton = ({ icon, onClick, disabled }: ScrollButtonProps) => {
         onClick?.()
       }, 300)
     } else {
-      clearInterval(intervalRef.current as number)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
     }
-    return () => clearInterval(intervalRef.current as number)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
   }, [isPressed, onClick])
 
   React.useEffect(() => {
     if (disabled) {
-      clearInterval(intervalRef.current as number)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
       setIsPressed(false)
     }
   }, [disabled])
@@ -216,9 +224,15 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
         keyDownHandler(isKeyDowned)
       }, 300)
     } else {
-      clearInterval(intervalRef.current as number)
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
     }
-    return () => clearInterval(intervalRef.current as number)
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current)
+      }
+    }
   }, [isKeyDowned, scrollToTest])
 
   const keyDown = (e: KeyboardEvent) => {
@@ -275,35 +289,33 @@ const Legend = React.forwardRef<HTMLOListElement, LegendProps>((props, ref) => {
           />
         ))}
       </div>
-      {enableLegendSlider && (hasScroll?.right || hasScroll?.left) ? (
-        <>
-          <div
-            className={cx(
-              // base
-              'absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1',
-              // background color
-              'bg-white dark:bg-gray-950'
-            )}
-          >
-            <ScrollButton
-              icon={RiArrowLeftSLine}
-              onClick={() => {
-                setIsKeyDowned(null)
-                scrollToTest('left')
-              }}
-              disabled={!hasScroll?.left}
-            />
-            <ScrollButton
-              icon={RiArrowRightSLine}
-              onClick={() => {
-                setIsKeyDowned(null)
-                scrollToTest('right')
-              }}
-              disabled={!hasScroll?.right}
-            />
-          </div>
-        </>
-      ) : null}
+      {enableLegendSlider && (hasScroll?.right || hasScroll?.left) && (
+        <div
+          className={cx(
+            // base
+            'absolute top-0 right-0 bottom-0 flex h-full items-center justify-center pr-1',
+            // background color
+            'bg-white dark:bg-gray-950'
+          )}
+        >
+          <ScrollButton
+            icon={RiArrowLeftSLine}
+            onClick={() => {
+              setIsKeyDowned(null)
+              scrollToTest('left')
+            }}
+            disabled={!hasScroll?.left}
+          />
+          <ScrollButton
+            icon={RiArrowRightSLine}
+            onClick={() => {
+              setIsKeyDowned(null)
+              scrollToTest('right')
+            }}
+            disabled={!hasScroll?.right}
+          />
+        </div>
+      )}
     </ol>
   )
 })
@@ -359,23 +371,23 @@ const ChartLegend = (
 
 // #region Tooltip
 
-type TooltipProps = Pick<ChartTooltipProps, 'active' | 'payload' | 'label'>
+  type PayloadItem = {
+    category: string
+    value: number
+    index: string
+    color: AvailableChartColorsKeys
+    type?: string
+    payload: any
+  }
 
-type PayloadItem = {
-  category: string
-  value: number
-  index: string
-  color: AvailableChartColorsKeys
-  type?: string
-  payload: any
-}
+  interface ChartTooltipProps {
+    active: boolean | undefined
+    payload: PayloadItem[]
+    label: string
+    valueFormatter: (value: number) => string
+  }
 
-interface ChartTooltipProps {
-  active: boolean | undefined
-  payload: PayloadItem[]
-  label: string
-  valueFormatter: (value: number) => string
-}
+  type TooltipProps = Pick<ChartTooltipProps, 'active' | 'payload' | 'label'>
 
 const ChartTooltip = ({
   active,
