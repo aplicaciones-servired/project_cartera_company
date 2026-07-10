@@ -43,6 +43,9 @@ const createReadyPromise = (): Promise<void> => {
       readyResolve = resolve
       readyReject = reject
     })
+    // Evitar unhandled rejection: marcamos el promise como manejado
+    // (seguirá rechazándose para quien lo `await`, pero Node no matará el proceso)
+    readyPromise.catch(() => {})
   }
 
   return readyPromise
@@ -137,11 +140,30 @@ const ensureStarted = async (): Promise<any> => {
     client.on('disconnected', (reason: string) => {
       currentState = 'error'
       lastError = reason
-      rejectReady(reason)
       console.warn('[WhatsApp] Cliente desconectado:', reason)
+      // Rechazamos la promesa de ready para desbloquear esperas, si existe
+      rejectReady(reason)
+
+      // Si se desconectó por LOGOUT, eliminamos la sesión y reiniciamos el cliente
+      if (reason === 'LOGOUT') {
+        destroyClient()
+          .then(() => rm(authPath, { recursive: true, force: true }))
+          .catch(() => undefined)
+          .then(() => {
+            // Intentamos reiniciar el cliente en background sin bloquear
+            ensureStarted().catch(() => undefined)
+          })
+      }
     })
 
-    startPromise = client.initialize().then(() => client)
+    startPromise = client.initialize().then(() => client).catch((err: any) => {
+      currentState = 'error'
+      lastError = (err && err.message) ? err.message : String(err)
+      console.error('[WhatsApp] Error iniciando cliente:', lastError)
+      // Rechazamos la promesa de ready si existe (evita bloqueo de llamadas que esperan)
+      rejectReady(lastError)
+      return Promise.reject(err)
+    })
   }
 
   return startPromise
