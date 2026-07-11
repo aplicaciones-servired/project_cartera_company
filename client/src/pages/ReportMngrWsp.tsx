@@ -53,13 +53,17 @@ export default function ReportMngrWsp () {
   const [selectedVinculados, setSelectedVinculados] = useState<number[]>([])
   const [companyFilter, setCompanyFilter] = useState<'all' | 'servired' | 'multired'>('all')
   const [quickDocument, setQuickDocument] = useState<string>('')
-  const [dialogOpen, setDialogOpen] = useState<boolean>(false)
-  const [contactCelular, setContactCelular] = useState<string>('')
-  const [contactTelefono, setContactTelefono] = useState<string>('')
-  const [contactEmail, setContactEmail] = useState<string>('')
-  const [contactDocAlterno, setContactDocAlterno] = useState<string>('')
-  const [contactNombreAlterno, setContactNombreAlterno] = useState<string>('')
-  const [contactCelAlterno, setContactCelAlterno] = useState<string>('')
+  const [contactDialogOpen, setContactDialogOpen] = useState<boolean>(false)
+  const [phoneDialogOpen, setPhoneDialogOpen] = useState<boolean>(false)
+  const [contactFormDocumento, setContactFormDocumento] = useState<string>('')
+  const [contactFormCelular, setContactFormCelular] = useState<string>('')
+  const [contactFormTelefono, setContactFormTelefono] = useState<string>('')
+  const [contactFormEmail, setContactFormEmail] = useState<string>('')
+  const [contactFormDocAlterno, setContactFormDocAlterno] = useState<string>('')
+  const [contactFormNombreAlterno, setContactFormNombreAlterno] = useState<string>('')
+  const [contactFormCelAlterno, setContactFormCelAlterno] = useState<string>('')
+  const [phoneUpdateDocumento, setPhoneUpdateDocumento] = useState<string>('')
+  const [phoneUpdatePhone, setPhoneUpdatePhone] = useState<string>('')
   const [savingPhone, setSavingPhone] = useState<boolean>(false)
 
   const handleSubmit = async (ev: FormEvent) => {
@@ -161,14 +165,22 @@ export default function ReportMngrWsp () {
   }
 
   const openPhoneUpdateDialog = (documentoValue: string, phoneValue: string | null) => {
-    setQuickDocument(documentoValue)
-    setContactCelular(phoneValue || '')
-    setContactTelefono(phoneValue || '')
-    setContactEmail('')
-    setContactDocAlterno('')
-    setContactNombreAlterno('')
-    setContactCelAlterno('')
-    setDialogOpen(true)
+    setContactDialogOpen(false)
+    setPhoneUpdateDocumento(documentoValue)
+    setPhoneUpdatePhone(phoneValue || '')
+    setPhoneDialogOpen(true)
+  }
+
+  const openContactCreateDialog = () => {
+    setPhoneDialogOpen(false)
+    setContactFormDocumento(quickDocument)
+    setContactFormCelular('')
+    setContactFormTelefono('')
+    setContactFormEmail('')
+    setContactFormDocAlterno('')
+    setContactFormNombreAlterno('')
+    setContactFormCelAlterno('')
+    setContactDialogOpen(true)
   }
 
   const handleQuickSelect = () => {
@@ -194,9 +206,9 @@ export default function ReportMngrWsp () {
   const selectedVinculadoSet = useMemo(() => new Set(selectedVinculados), [selectedVinculados])
 
   const handleSavePhone = async () => {
-    const phoneToSave = contactTelefono.trim() || contactCelular.trim()
+    const phoneToSave = phoneUpdatePhone.trim()
 
-    if (!quickDocument || !phoneToSave) {
+    if (!phoneUpdateDocumento || !phoneToSave) {
       toast.error('Documento y teléfono son obligatorios')
       return
     }
@@ -206,24 +218,16 @@ export default function ReportMngrWsp () {
     try {
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
         mode: 'upsert-contact',
-        documento: quickDocument,
+        documento: phoneUpdateDocumento,
         celular: phoneToSave,
-        telefono: phoneToSave,
-        email: contactEmail,
-        docAlterno: contactDocAlterno,
-        nombreAlterno: contactNombreAlterno,
-        celAlterno: contactCelAlterno
+        telefono: phoneToSave
       }, { timeout: 120000 })
 
       if (response.data?.success) {
-        toast.success('Contacto guardado en INFOCONTACTO')
-        setDialogOpen(false)
-        setContactCelular('')
-        setContactTelefono('')
-        setContactEmail('')
-        setContactDocAlterno('')
-        setContactNombreAlterno('')
-        setContactCelAlterno('')
+        toast.success('Teléfono actualizado en INFOCONTACTO')
+        setPhoneDialogOpen(false)
+        setPhoneUpdateDocumento('')
+        setPhoneUpdatePhone('')
 
         const displayedPhone = response.data.phone || phoneToSave
         setData(prev => {
@@ -233,7 +237,64 @@ export default function ReportMngrWsp () {
             cartera: prev.cartera.map(item => {
               const itemDocumento = String((item as Record<string, unknown>).documento || '')
               const itemVinculado = String((item as Record<string, unknown>).vinculado || '')
-              if (itemDocumento === quickDocument || itemVinculado === quickDocument) {
+              if (itemDocumento === phoneUpdateDocumento || itemVinculado === phoneUpdateDocumento) {
+                return { ...(item as Record<string, unknown>), phone: displayedPhone }
+              }
+              return item
+            })
+          }
+        })
+      }
+    } catch (error) {
+      console.error(error)
+      toast.error('No fue posible actualizar el teléfono')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
+
+  const handleSaveContact = async () => {
+    const phoneToSave = contactFormTelefono.trim() || contactFormCelular.trim()
+
+    if (!contactFormDocumento || !phoneToSave) {
+      toast.error('Documento y teléfono son obligatorios')
+      return
+    }
+
+    setSavingPhone(true)
+
+    try {
+      const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
+        mode: 'upsert-contact',
+        documento: contactFormDocumento,
+        celular: contactFormCelular || phoneToSave,
+        telefono: contactFormTelefono || phoneToSave,
+        email: contactFormEmail,
+        docAlterno: contactFormDocAlterno,
+        nombreAlterno: contactFormNombreAlterno,
+        celAlterno: contactFormCelAlterno
+      }, { timeout: 120000 })
+
+      if (response.data?.success) {
+        toast.success('Contacto guardado en INFOCONTACTO')
+        setContactDialogOpen(false)
+        setContactFormDocumento('')
+        setContactFormCelular('')
+        setContactFormTelefono('')
+        setContactFormEmail('')
+        setContactFormDocAlterno('')
+        setContactFormNombreAlterno('')
+        setContactFormCelAlterno('')
+
+        const displayedPhone = response.data.phone || phoneToSave
+        setData(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            cartera: prev.cartera.map(item => {
+              const itemDocumento = String((item as Record<string, unknown>).documento || '')
+              const itemVinculado = String((item as Record<string, unknown>).vinculado || '')
+              if (itemDocumento === contactFormDocumento || itemVinculado === contactFormDocumento) {
                 return { ...(item as Record<string, unknown>), phone: displayedPhone }
               }
               return item
@@ -302,18 +363,22 @@ export default function ReportMngrWsp () {
 
   return (
     <>
-      <Card className='flex flex-wrap justify-between gap-4'>
-        <div className='flex items-center gap-2'>
-          <Badge variant='default'>Carteras consultadas: {data?.bulk ? bulkSummaries.length : data?.cartera?.length || 0}</Badge>
-          {data?.bulk && (
-            <>
-              <Badge variant='success'>Con teléfono: {withPhoneCount}</Badge>
-              <Badge variant='warning'>Sin teléfono: {withoutPhoneCount}</Badge>
-            </>
-          )}
+      <Card className='rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm'>
+        <div className='mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+          <div className='flex flex-wrap items-center gap-2'>
+            <Badge variant='default'>Carteras consultadas: {data?.bulk ? bulkSummaries.length : data?.cartera?.length || 0}</Badge>
+            {data?.bulk && (
+              <>
+                <Badge variant='success'>Con teléfono: {withPhoneCount}</Badge>
+                <Badge variant='warning'>Sin teléfono: {withoutPhoneCount}</Badge>
+              </>
+            )}
+          </div>
+          <div className='text-sm text-slate-500'>Filtra por fechas, cédula o cantidad de carteras para cargar la selección.</div>
         </div>
-        <form className='flex flex-wrap items-end gap-4' onSubmit={handleSubmit}>
-          <div className='flex gap-2 items-center'>
+
+        <form className='grid gap-4 lg:grid-cols-[220px_220px_200px_1fr_auto]' onSubmit={handleSubmit}>
+          <div className='flex flex-col gap-2'>
             <Label htmlFor='fecha'>Fecha Inicial</Label>
             <Input
               type='date'
@@ -323,7 +388,7 @@ export default function ReportMngrWsp () {
               onChange={e => setFecha1(e.target.value)}
             />
           </div>
-          <div className='flex gap-2 items-center'>
+          <div className='flex flex-col gap-2'>
             <Label htmlFor='fecha2'>Fecha Final</Label>
             <Input
               type='date'
@@ -333,7 +398,7 @@ export default function ReportMngrWsp () {
               onChange={e => setFecha2(e.target.value)}
             />
           </div>
-          <div className='flex gap-2 items-center'>
+          <div className='flex flex-col gap-2'>
             <Label htmlFor='limit'>N° carteras</Label>
             <Input
               type='number'
@@ -344,43 +409,45 @@ export default function ReportMngrWsp () {
               onChange={e => setLimit(e.target.value)}
             />
           </div>
-          <div className='flex gap-2 items-center'>
-            <Label htmlFor='documento'>Documento (opcional)</Label>
+          <div className='flex flex-col gap-2'>
+            <Label htmlFor='documento'>Documento</Label>
             <Input
               type='text'
               id='documento'
-              placeholder='Solo si desea una sola cartera'
+              placeholder='Buscar por cédula'
               value={documento}
               onChange={e => setDocumento(e.target.value)}
             />
           </div>
-          <Button disabled={loading} type='submit'>
-            {loading ? 'Buscando ...' : 'Buscar'}
-          </Button>
+          <div className='flex items-end'>
+            <Button disabled={loading} type='submit' className='w-full'>
+              {loading ? 'Buscando ...' : 'Buscar'}
+            </Button>
+          </div>
         </form>
       </Card>
 
-      <Card className='mt-1 flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between'>
-        <div className='max-w-xl'>
-          <h1 className='font-semibold'>CARGA MASIVA DE CARTERAS</h1>
-          <p className='text-sm text-gray-600'>Consulta varias carteras por fechas y, si hay contacto válido en INFOCONTACTO, puedes enviarlas por WhatsApp a las asesoras seleccionadas.</p>
-        </div>
-        <div className='flex flex-wrap items-center gap-3'>
-          <label className='flex items-center gap-2 text-sm'>
-            <span>Empresa</span>
-            <select
-              className='rounded border border-gray-300 bg-white px-4 py-2 text-sm min-w-[200px]'
-              value={companyFilter}
-              onChange={(e) => {
-                setCompanyFilter(e.target.value as 'all' | 'servired' | 'multired')
-              }}
-            >
-              <option value='all'>Todas</option>
-              <option value='servired'>Servired</option>
-              <option value='multired'>Multired</option>
-            </select>
-          </label>
-          <div className='flex flex-wrap items-center gap-2'>
+      <Card className='mt-4 rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-xl'>
+        <div className='grid gap-4 lg:grid-cols-[1.7fr_1fr]'>
+          <div>
+            <h1 className='text-xl font-semibold'>Carga masiva de carteras</h1>
+            <p className='mt-2 max-w-2xl text-sm text-slate-300'>Consulta varias carteras por fechas y, si hay contacto válido en INFOCONTACTO, envía los resultados por WhatsApp a las asesoras seleccionadas.</p>
+          </div>
+          <div className='flex flex-wrap items-center justify-end gap-3'>
+            <label className='flex items-center gap-2 rounded-2xl bg-slate-800 px-4 py-2 text-sm'>
+              <span>Empresa</span>
+              <select
+                className='rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm outline-none'
+                value={companyFilter}
+                onChange={(e) => {
+                  setCompanyFilter(e.target.value as 'all' | 'servired' | 'multired')
+                }}
+              >
+                <option value='all'>Todas</option>
+                <option value='servired'>Servired</option>
+                <option value='multired'>Multired</option>
+              </select>
+            </label>
             <Button type='button' disabled={!data?.bulk} onClick={toggleSelectAll}>
               {selectedVinculados.length === filteredSummaries.length && filteredSummaries.length > 0 ? 'Quitar selección' : 'Seleccionar todas'}
             </Button>
@@ -403,52 +470,38 @@ export default function ReportMngrWsp () {
         </Card>
       )}
 
-      <Card className='mt-1 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between'>
-        <div className='flex flex-1 flex-wrap items-center gap-2'>
-          <Input
-            className='min-w-[220px] flex-1'
-            type='text'
-            placeholder='Cédula para seleccionar'
-            value={quickDocument}
-            onChange={(e) => setQuickDocument(e.target.value)}
-          />
-          <Button type='button' onClick={handleQuickSelect}>Agregar selección</Button>
-        </div>
-        <div className='flex flex-wrap items-center gap-2'>
-          <Button type='button' className='w-full sm:w-auto' onClick={() => setDialogOpen(true)}>
-            Abrir formulario INFOCONTACTO
-          </Button>
-          {/* <Button
-            type='button'
-            className='w-full sm:w-auto'
-            disabled={selectedVinculados.length !== 1}
-            onClick={() => {
-              const selectedItem = selectedVinculados.length === 1
-                ? filteredSummaries.find(item => item.vinculado === selectedVinculados[0])
-                : null
-              if (!selectedItem) {
-                toast.error('Seleccione exactamente una cartera')
-                return
-              }
-              openPhoneUpdateDialog(String(selectedItem.documento || selectedItem.vinculado), selectedItem.phone || null)
-            }}
-          >
-            Actualizar teléfono
-          </Button> */}
+      <Card className='mt-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm'>
+        <div className='grid gap-4 sm:grid-cols-[1fr_auto]'>
+          <div className='flex flex-col gap-3'>
+            <span className='text-sm font-medium text-slate-700'>Marcar carteras por cédula</span>
+            <Input
+              className='min-w-[220px] flex-1'
+              type='text'
+              placeholder='Ingresa la cédula y luego presiona Agregar selección'
+              value={quickDocument}
+              onChange={(e) => setQuickDocument(e.target.value)}
+            />
+          </div>
+          <div className='flex flex-wrap items-center gap-3'>
+            <Button type='button' onClick={handleQuickSelect}>Agregar selección</Button>
+            <Button type='button' className='w-full sm:w-auto' onClick={openContactCreateDialog}>
+              Abrir formulario INFOCONTACTO
+            </Button>
+          </div>
         </div>
       </Card>
 
       {selectedVinculados.length > 0 && (
-        <Card className='mt-2 flex flex-wrap items-center gap-2'>
-          <div className='flex items-center gap-2'>
-            <span className='text-sm font-medium'>Seleccionadas:</span>
+        <Card className='mt-4 rounded-3xl border border-slate-200 bg-sky-50 p-4 shadow-sm'>
+          <div className='flex flex-wrap items-center gap-3'>
+            <span className='text-sm font-semibold text-slate-700'>Seleccionadas:</span>
             {selectedVinculados.map((id) => (
-              <Badge key={`sel-${id}`} className='inline-flex items-center gap-2'>
+              <Badge key={`sel-${id}`} className='inline-flex items-center gap-2 rounded-full bg-white px-3 py-1 text-sm text-slate-700 shadow-sm'>
                 <span>{id}</span>
                 <button
                   type='button'
                   onClick={() => removeVinculadoSelection(id)}
-                  className='ml-2 rounded px-1 text-xs text-red-600'
+                  className='rounded-full px-1 text-xs text-red-600 hover:bg-red-100'
                 >
                   x
                 </button>
@@ -458,74 +511,111 @@ export default function ReportMngrWsp () {
         </Card>
       )}
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
         <DialogContent className='max-w-2xl'>
           <DialogHeader>
             <DialogTitle>Registrar contacto en INFOCONTACTO</DialogTitle>
             <DialogDescription>Documento y celular son obligatorios. Resto de campos es opcional.</DialogDescription>
           </DialogHeader>
+          <div className='grid gap-4 py-4 sm:grid-cols-2 lg:grid-cols-4'>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-documento'>Documento</Label>
+              <Input
+                id='contact-form-documento'
+                type='text'
+                value={contactFormDocumento}
+                onChange={(e) => setContactFormDocumento(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-celular'>Celular</Label>
+              <Input
+                id='contact-form-celular'
+                type='text'
+                value={contactFormCelular}
+                onChange={(e) => setContactFormCelular(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-telefono'>Teléfono</Label>
+              <Input
+                id='contact-form-telefono'
+                type='text'
+                value={contactFormTelefono}
+                onChange={(e) => setContactFormTelefono(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-email'>Email</Label>
+              <Input
+                id='contact-form-email'
+                type='email'
+                value={contactFormEmail}
+                onChange={(e) => setContactFormEmail(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-docalterno'>Documento alterno</Label>
+              <Input
+                id='contact-form-docalterno'
+                type='text'
+                value={contactFormDocAlterno}
+                onChange={(e) => setContactFormDocAlterno(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2'>
+              <Label htmlFor='contact-form-nombrealterno'>Nombre alterno</Label>
+              <Input
+                id='contact-form-nombrealterno'
+                type='text'
+                value={contactFormNombreAlterno}
+                onChange={(e) => setContactFormNombreAlterno(e.target.value)}
+              />
+            </div>
+            <div className='grid gap-2 sm:col-span-2 lg:col-span-2'>
+              <Label htmlFor='contact-form-celalterno'>Celular alterno</Label>
+              <Input
+                id='contact-form-celalterno'
+                type='text'
+                value={contactFormCelAlterno}
+                onChange={(e) => setContactFormCelAlterno(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter className='flex flex-col gap-3 sm:flex-row sm:justify-end'>
+            <DialogClose asChild>
+              <Button variant='secondary'>Cancelar</Button>
+            </DialogClose>
+            <Button disabled={savingPhone} onClick={handleSaveContact}>
+              {savingPhone ? 'Guardando...' : 'Guardar contacto'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={phoneDialogOpen} onOpenChange={setPhoneDialogOpen}>
+        <DialogContent className='max-w-md'>
+          <DialogHeader>
+            <DialogTitle>Actualizar teléfono</DialogTitle>
+            <DialogDescription>Actualiza solo el teléfono del contacto en INFOCONTACTO.</DialogDescription>
+          </DialogHeader>
           <div className='grid gap-4 py-4'>
             <div className='grid gap-2'>
-              <Label htmlFor='contact-documento'>Documento</Label>
+              <Label htmlFor='phone-update-documento'>Documento</Label>
               <Input
-                id='contact-documento'
+                id='phone-update-documento'
                 type='text'
-                value={quickDocument}
-                onChange={(e) => setQuickDocument(e.target.value)}
+                value={phoneUpdateDocumento}
+                readOnly
               />
             </div>
             <div className='grid gap-2'>
-              <Label htmlFor='contact-celular'>Celular</Label>
+              <Label htmlFor='phone-update-phone'>Teléfono</Label>
               <Input
-                id='contact-celular'
+                id='phone-update-phone'
                 type='text'
-                value={contactCelular}
-                onChange={(e) => setContactCelular(e.target.value)}
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='contact-telefono'>Teléfono</Label>
-              <Input
-                id='contact-telefono'
-                type='text'
-                value={contactTelefono}
-                onChange={(e) => setContactTelefono(e.target.value)}
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='contact-email'>Email</Label>
-              <Input
-                id='contact-email'
-                type='email'
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='contact-docalterno'>Documento alterno</Label>
-              <Input
-                id='contact-docalterno'
-                type='text'
-                value={contactDocAlterno}
-                onChange={(e) => setContactDocAlterno(e.target.value)}
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='contact-nombrealterno'>Nombre alterno</Label>
-              <Input
-                id='contact-nombrealterno'
-                type='text'
-                value={contactNombreAlterno}
-                onChange={(e) => setContactNombreAlterno(e.target.value)}
-              />
-            </div>
-            <div className='grid gap-2'>
-              <Label htmlFor='contact-celalterno'>Celular alterno</Label>
-              <Input
-                id='contact-celalterno'
-                type='text'
-                value={contactCelAlterno}
-                onChange={(e) => setContactCelAlterno(e.target.value)}
+                value={phoneUpdatePhone}
+                onChange={(e) => setPhoneUpdatePhone(e.target.value)}
               />
             </div>
           </div>
@@ -534,20 +624,20 @@ export default function ReportMngrWsp () {
               <Button variant='secondary'>Cancelar</Button>
             </DialogClose>
             <Button disabled={savingPhone} onClick={handleSavePhone}>
-              {savingPhone ? 'Guardando...' : 'Guardar contacto'}
+              {savingPhone ? 'Guardando...' : 'Actualizar teléfono'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Card className='mt-1'>
+      <Card className='mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm'>
         {data?.bulk
           ? (
-            <TableRoot className='h-[75vh] overflow-y-auto'>
+            <TableRoot className='h-[72vh] overflow-y-auto'>
               <Table>
-                <TableHead className='sticky top-0 bg-gray-100 z-30'>
+                <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
                   <TableRow>
-                    <TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>
                       <input
                         type='checkbox'
                         checked={filteredSummaries.length > 0 && selectedVinculados.length === filteredSummaries.length}
@@ -555,24 +645,24 @@ export default function ReportMngrWsp () {
                         aria-label='Seleccionar todas las asesoras'
                       />
                     </TableHeaderCell>
-                    <TableHeaderCell>Vinculado</TableHeaderCell>
-                    <TableHeaderCell>Asesora</TableHeaderCell>
-                    <TableHeaderCell>Documento</TableHeaderCell>
-                    <TableHeaderCell>Teléfono</TableHeaderCell>
-                    <TableHeaderCell>Acciones</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Saldo inicial</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Base</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Ingresos</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Egresos</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Abonos</TableHeaderCell>
-                    <TableHeaderCell className='text-right'>Saldo final</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Vinculado</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Asesora</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Documento</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Teléfono</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Acciones</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo inicial</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Base</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Ingresos</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Egresos</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Abonos</TableHeaderCell>
+                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo final</TableHeaderCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredSummaries.map((item, index) => (
                     <TableRow
                       key={`${item.vinculado}-${index}`}
-                      className={selectedVinculadoSet.has(item.vinculado) ? 'bg-blue-50' : ''}
+                      className={selectedVinculadoSet.has(item.vinculado) ? 'bg-sky-50 shadow-inner' : 'hover:bg-slate-50'}
                     >
                       <TableCell>
                         <input
@@ -605,10 +695,10 @@ export default function ReportMngrWsp () {
                     </TableRow>
                   ))}
                 </TableBody>
-                <TableFoot className='sticky bottom-0 bg-gray-100 z-30'>
+                <TableFoot className='sticky bottom-0 bg-slate-100 z-30'>
                   <TableRow>
-                    <TableHeaderCell colSpan={10} scope='row' className='text-right'>Total de carteras:</TableHeaderCell>
-                    <TableHeaderCell scope='row' className='text-right'>{filteredSummaries.length}</TableHeaderCell>
+                    <TableHeaderCell colSpan={10} scope='row' className='text-right text-sm font-semibold text-slate-700'>Total de carteras:</TableHeaderCell>
+                    <TableHeaderCell scope='row' className='text-right text-sm font-semibold text-slate-700'>{filteredSummaries.length}</TableHeaderCell>
                   </TableRow>
                 </TableFoot>
               </Table>
@@ -621,14 +711,14 @@ export default function ReportMngrWsp () {
               </div>
               <TableRoot className='h-[75vh] overflow-y-auto'>
                 <Table>
-                  <TableHead className='sticky top-0 bg-gray-100 z-30'>
+                  <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
                     <TableRow>
-                      <TableHeaderCell>Fecha</TableHeaderCell>
-                      <TableHeaderCell className='text-right'>Ingresos</TableHeaderCell>
-                      <TableHeaderCell className='text-right'>Egresos</TableHeaderCell>
-                      <TableHeaderCell className='text-right'>Saldo Día</TableHeaderCell>
-                      <TableHeaderCell className='text-right'>Abono Cartera</TableHeaderCell>
-                      <TableHeaderCell className='text-right'>Diferencia día</TableHeaderCell>
+                      <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Fecha</TableHeaderCell>
+                      <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Ingresos</TableHeaderCell>
+                      <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Egresos</TableHeaderCell>
+                      <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo Día</TableHeaderCell>
+                      <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Abono Cartera</TableHeaderCell>
+                      <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Diferencia día</TableHeaderCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
