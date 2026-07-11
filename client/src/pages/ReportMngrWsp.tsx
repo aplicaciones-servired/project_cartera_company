@@ -153,6 +153,17 @@ export default function ReportMngrWsp () {
     setSelectedVinculados(allSelected ? [] : allIds)
   }
 
+  const openPhoneUpdateDialog = (documentoValue: string, phoneValue: string | null) => {
+    setQuickDocument(documentoValue)
+    setContactCelular(phoneValue || '')
+    setContactTelefono(phoneValue || '')
+    setContactEmail('')
+    setContactDocAlterno('')
+    setContactNombreAlterno('')
+    setContactCelAlterno('')
+    setDialogOpen(true)
+  }
+
   const handleQuickSelect = () => {
     if (!quickDocument) {
       toast.error('Ingrese la cédula para buscar')
@@ -174,8 +185,10 @@ export default function ReportMngrWsp () {
   }
 
   const handleSavePhone = async () => {
-    if (!quickDocument || !contactCelular) {
-      toast.error('Documento y celular son obligatorios')
+    const phoneToSave = contactTelefono.trim() || contactCelular.trim()
+
+    if (!quickDocument || !phoneToSave) {
+      toast.error('Documento y teléfono son obligatorios')
       return
     }
 
@@ -185,8 +198,8 @@ export default function ReportMngrWsp () {
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
         mode: 'upsert-contact',
         documento: quickDocument,
-        celular: contactCelular,
-        telefono: contactTelefono,
+        celular: phoneToSave,
+        telefono: phoneToSave,
         email: contactEmail,
         docAlterno: contactDocAlterno,
         nombreAlterno: contactNombreAlterno,
@@ -196,11 +209,28 @@ export default function ReportMngrWsp () {
       if (response.data?.success) {
         toast.success('Contacto guardado en INFOCONTACTO')
         setDialogOpen(false)
+        setContactCelular('')
         setContactTelefono('')
         setContactEmail('')
         setContactDocAlterno('')
         setContactNombreAlterno('')
         setContactCelAlterno('')
+
+        const displayedPhone = response.data.phone || phoneToSave
+        setData(prev => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            cartera: prev.cartera.map(item => {
+              const itemDocumento = String((item as Record<string, unknown>).documento || '')
+              const itemVinculado = String((item as Record<string, unknown>).vinculado || '')
+              if (itemDocumento === quickDocument || itemVinculado === quickDocument) {
+                return { ...(item as Record<string, unknown>), phone: displayedPhone }
+              }
+              return item
+            })
+          }
+        })
       }
     } catch (error) {
       console.error(error)
@@ -375,9 +405,28 @@ export default function ReportMngrWsp () {
           />
           <Button type='button' onClick={handleQuickSelect}>Agregar selección</Button>
         </div>
-        <Button type='button' className='w-full sm:w-auto' onClick={() => setDialogOpen(true)}>
-          Abrir formulario INFOCONTACTO
-        </Button>
+        <div className='flex flex-wrap items-center gap-2'>
+          <Button type='button' className='w-full sm:w-auto' onClick={() => setDialogOpen(true)}>
+            Abrir formulario INFOCONTACTO
+          </Button>
+          <Button
+            type='button'
+            className='w-full sm:w-auto'
+            disabled={selectedVinculados.length !== 1}
+            onClick={() => {
+              const selectedItem = selectedVinculados.length === 1
+                ? filteredSummaries.find(item => item.vinculado === selectedVinculados[0])
+                : null
+              if (!selectedItem) {
+                toast.error('Seleccione exactamente una cartera')
+                return
+              }
+              openPhoneUpdateDialog(String(selectedItem.documento || selectedItem.vinculado), selectedItem.phone || null)
+            }}
+          >
+            Actualizar teléfono
+          </Button>
+        </div>
       </Card>
 
       {selectedVinculados.length > 0 && (
@@ -501,7 +550,7 @@ export default function ReportMngrWsp () {
                     <TableHeaderCell>Asesora</TableHeaderCell>
                     <TableHeaderCell>Documento</TableHeaderCell>
                     <TableHeaderCell>Teléfono</TableHeaderCell>
-                    <TableHeaderCell>Estado</TableHeaderCell>
+                    <TableHeaderCell>Acciones</TableHeaderCell>
                     <TableHeaderCell className='text-right'>Saldo inicial</TableHeaderCell>
                     <TableHeaderCell className='text-right'>Base</TableHeaderCell>
                     <TableHeaderCell className='text-right'>Ingresos</TableHeaderCell>
@@ -525,7 +574,16 @@ export default function ReportMngrWsp () {
                       <TableCell>{item.sellerName || 'N/D'}</TableCell>
                       <TableCell>{item.documento || 'N/D'}</TableCell>
                       <TableCell>{item.phone || 'Sin teléfono'}</TableCell>
-                      <TableCell>{item.isValidForDispatch ? 'Válida para envío' : item.validationReason || 'No válida'}</TableCell>
+                      <TableCell>
+                        <Button
+                          type='button'
+                          variant='secondary'
+                          onClick={() => openPhoneUpdateDialog(String(item.documento || item.vinculado), item.phone || null)}
+                          disabled={!item.documento && !item.vinculado}
+                        >
+                          Actualizar teléfono
+                        </Button>
+                      </TableCell>
                       <TableCell className='text-right'>{formatValue(item.saldoInicial || 0)}</TableCell>
                       <TableCell className='text-right'>{formatValue(item.base || 0)}</TableCell>
                       <TableCell className='text-right'>{formatValue(item.ingresos || 0)}</TableCell>
