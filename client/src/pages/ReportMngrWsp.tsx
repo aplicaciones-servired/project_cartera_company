@@ -78,16 +78,23 @@ export default function ReportMngrWsp () {
     setLoading(true)
 
     try {
+      const searchVinculado = documento ? Number(documento) : undefined
+      const nextSelectedVinculados = documento && searchVinculado
+        ? Array.from(new Set([...selectedVinculados, searchVinculado]))
+        : selectedVinculados
+
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
         fecha1,
         fecha2,
-        ...(documento ? { vinculado: documento } : {}),
         limit: Number(limit || 20),
-        mode: 'report'
+        mode: 'report',
+        ...(searchVinculado ? { selectedVinculados: nextSelectedVinculados } : {})
       }, { timeout: 180000 })
 
       setData(response.data)
-      setSelectedVinculados([])
+      if (searchVinculado) {
+        setSelectedVinculados(nextSelectedVinculados)
+      }
       if (response.data?.bulk) {
         toast.success(`Se consultaron ${response.data.cartera?.length || 0} carteras`)
       } else {
@@ -183,6 +190,8 @@ export default function ReportMngrWsp () {
       toast('La cartera ya estaba seleccionada')
     }
   }
+
+  const selectedVinculadoSet = useMemo(() => new Set(selectedVinculados), [selectedVinculados])
 
   const handleSavePhone = async () => {
     const phoneToSave = contactTelefono.trim() || contactCelular.trim()
@@ -409,7 +418,7 @@ export default function ReportMngrWsp () {
           <Button type='button' className='w-full sm:w-auto' onClick={() => setDialogOpen(true)}>
             Abrir formulario INFOCONTACTO
           </Button>
-          <Button
+          {/* <Button
             type='button'
             className='w-full sm:w-auto'
             disabled={selectedVinculados.length !== 1}
@@ -425,7 +434,7 @@ export default function ReportMngrWsp () {
             }}
           >
             Actualizar teléfono
-          </Button>
+          </Button> */}
         </div>
       </Card>
 
@@ -561,11 +570,14 @@ export default function ReportMngrWsp () {
                 </TableHead>
                 <TableBody>
                   {filteredSummaries.map((item, index) => (
-                    <TableRow key={`${item.vinculado}-${index}`}>
+                    <TableRow
+                      key={`${item.vinculado}-${index}`}
+                      className={selectedVinculadoSet.has(item.vinculado) ? 'bg-blue-50' : ''}
+                    >
                       <TableCell>
                         <input
                           type='checkbox'
-                          checked={selectedVinculados.includes(item.vinculado)}
+                          checked={selectedVinculadoSet.has(item.vinculado)}
                           onChange={() => toggleVinculadoSelection(item.vinculado)}
                           aria-label={`Seleccionar ${item.sellerName || item.vinculado}`}
                         />
