@@ -54,7 +54,7 @@ export async function reportConsolidadoVenta(fecha1: string, fecha2: string, doc
       WHERE 
         ${datesString}
         AND tvn.persona = :documento`,
-      [documento],
+      { documento },
       { timeout: 60000, requestId }
     );
 

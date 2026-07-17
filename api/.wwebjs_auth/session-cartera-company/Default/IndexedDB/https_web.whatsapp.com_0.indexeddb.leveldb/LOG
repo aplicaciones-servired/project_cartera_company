@@ -1,3 +1,20 @@
-2026/07/11-11:05:23.241 4330 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/07/11-11:05:23.244 4330 Recovering log #249
-2026/07/11-11:05:23.276 4330 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000249.log 
+2026/07/17-11:50:14.151 6874 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/07/17-11:50:14.154 6874 Recovering log #187
+2026/07/17-11:50:14.164 6874 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000187.log 
+2026/07/17-11:50:14.165 6874 Delete type=2 #189
+2026/07/17-11:50:14.165 6874 Delete type=2 #190
+2026/07/17-11:50:14.165 6874 Delete type=2 #191
+2026/07/17-11:50:14.165 6874 Delete type=2 #192
+2026/07/17-11:50:14.165 6874 Delete type=2 #193
+2026/07/17-11:50:14.165 6874 Delete type=2 #194
+2026/07/17-11:50:15.955 6874 Compacting 1@1 + 8@2 files
+2026/07/17-11:50:16.466 6874 Generated table #190@1: 34322 keys, 2199171 bytes
+2026/07/17-11:50:16.536 6874 Generated table #191@1: 418 keys, 2120048 bytes
+2026/07/17-11:50:16.656 6874 Generated table #192@1: 923 keys, 2128070 bytes
+2026/07/17-11:50:16.853 6874 Generated table #193@1: 1869 keys, 2140346 bytes
+2026/07/17-11:50:16.966 6874 Generated table #194@1: 8767 keys, 2158508 bytes
+2026/07/17-11:50:17.462 6874 Generated table #195@1: 26310 keys, 2249169 bytes
+2026/07/17-11:50:17.919 6874 Generated table #196@1: 57697 keys, 2194476 bytes
+2026/07/17-11:50:18.389 6874 Generated table #197@1: 99533 keys, 2238259 bytes
+2026/07/17-11:50:18.389 6874 Compacted 1@1 + 8@2 files => 17428047 bytes
+2026/07/17-11:50:18.396 6874 compacted to: files[ 0 0 8 0 0 0 0 ]

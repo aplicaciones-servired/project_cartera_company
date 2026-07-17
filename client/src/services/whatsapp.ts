@@ -77,14 +77,9 @@ export const buildManagerMessage = (
   })
 
   return [
-    'Reporte Manager',
+    'Reporte De Gestión De Cartera',
     info ? `Vendedor: ${info.NOMBRES} - ${info.DOCUMENTO}` : '',
-    `Saldo inicial: ${formatValue(initial)}`,
-    `Base asignada: ${formatValue(base)}`,
     `Cartera: ${formatValue(saldoFinal)}`,
-    `Ingresos: ${formatValue(totalIngresos)}`,
-    `Egresos: ${formatValue(totalEgresos)}`,
-    `Abonos cartera: ${formatValue(totalAbonos)}`,
     '',
     ...lines,
     datos.length > 15 ? `... y ${datos.length - 15} registros más` : ''

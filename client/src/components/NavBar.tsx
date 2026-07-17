@@ -9,8 +9,8 @@ const Links = [
   { link: '/', name: 'Inicio' },
   { link: '/detallado', name: 'Detallado' },
   { link: '/bases', name: 'Bases' },
-  { link: '/Reportes', name: 'Reportes' }
-  // { link: '/ReportesWhatsApp', name: 'WhatsApp' }
+  { link: '/Reportes', name: 'Reportes' },
+  { link: '/ReportesWhatsApp', name: 'WhatsApp' }
 ]
 
 const LinkComponent = ({ link, name }: { link: string, name: string }) => {

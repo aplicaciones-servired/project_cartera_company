@@ -156,6 +156,11 @@ const buildPortfolioSummary = async ({
   frmDate1: string
   frmDate2: string
 }): Promise<SellerPortfolioSummary> => {
+  // Validar que vinculado sea un número positivo válido
+  if (!Number.isInteger(vinculado) || vinculado <= 0) {
+    throw new Error(`Vinculado inválido: ${vinculado}. Debe ser un número positivo.`);
+  }
+
   const CarteraInicial = await Cartera.findOne({
     attributes: ['SALDO_ANT'],
     where: {
@@ -190,10 +195,10 @@ const buildPortfolioSummary = async ({
       WHERE mcncuenta = '13459501'
       AND mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
       AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
-      AND mcnVincula = :documento
+      AND mcnVincula = TO_CHAR(:documento)
       GROUP BY mcnfecha, mcncuenta, mcnEmpresa, mcnVincula
       ORDER BY mcnfecha`,
-    [frmDate1, frmDate2, vinculado],
+    { fecha1: frmDate1, fecha2: frmDate2, documento: vinculado },
     { timeout: 60000, requestId }
   )
 
@@ -265,12 +270,16 @@ export const getReportMngr = async (req: Request, res: Response) => {
     return
   }
 
-  const fecha1 = data.fecha1.split(' ')[0];
-  const fecha2 = data.fecha2.split(' ')[0];
+  const fecha1Raw = data.fecha1.split(' ')[0].trim();
+  const fecha2Raw = data.fecha2.split(' ')[0].trim();
   const vinculado = data.vinculado;
 
-  const frmDate1 = fecha1.split('-').reverse().join('/');
-  const frmDate2 = fecha2.split('-').reverse().join('/');
+  if (!fecha1Raw.match(/^\d{4}-\d{2}-\d{2}$/) || !fecha2Raw.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return res.status(400).json({ message: 'Formato de fecha inválido. Use YYYY-MM-DD' })
+  }
+
+  const frmDate1 = fecha1Raw.split('-').reverse().join('-');
+  const frmDate2 = fecha2Raw.split('-').reverse().join('-');
 
   let connection: Connection | undefined;
   let connectionClosedByTimeout = false;
@@ -281,7 +290,7 @@ export const getReportMngr = async (req: Request, res: Response) => {
       attributes: ['SALDO_ANT'],
       where: {
         VINCULADO: vinculado,
-        FECHA: fecha1
+        FECHA: fecha1Raw
       },
       include: [{
         model: Sellers,
@@ -317,10 +326,10 @@ export const getReportMngr = async (req: Request, res: Response) => {
       WHERE mcncuenta = '13459501'
       And mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
       AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
-      AND mcnVincula = :documento
+      AND mcnVincula = TO_CHAR(:documento)
       GROUP BY mcnfecha, mcncuenta, mcnEmpresa, mcnVincula
       ORDER BY mcnfecha`,
-      [frmDate1, frmDate2, vinculado],
+      { fecha1: frmDate1, fecha2: frmDate2, documento: vinculado },
       { timeout: 60000, requestId }
     );
 
@@ -413,8 +422,17 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
   if (!fecha1 || !fecha2) {
     return res.status(400).json({ message: 'Fechas obligatorias' })
   }
-  const frmDate1 = fecha1.split('-').reverse().join('/');
-  const frmDate2 = fecha2.split('-').reverse().join('/');
+  
+  // Validar y limpiar fechas
+  const trimmedFecha1 = fecha1.trim();
+  const trimmedFecha2 = fecha2.trim();
+  
+  if (!trimmedFecha1.match(/^\d{4}-\d{2}-\d{2}$/) || !trimmedFecha2.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    return res.status(400).json({ message: 'Formato de fecha inválido. Use YYYY-MM-DD' })
+  }
+  
+  const frmDate1 = trimmedFecha1.split('-').reverse().join('-');
+  const frmDate2 = trimmedFecha2.split('-').reverse().join('-');
 
   let connection: Connection | undefined;
   let connectionClosedByTimeout = false;
@@ -464,13 +482,15 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
       AND mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
       AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
       ORDER BY mcnVincula`,
-      [frmDate1, frmDate2],
+      { fecha1: frmDate1, fecha2: frmDate2 },
       { timeout: 60000, requestId }
     )
 
-    const vinculados = (result.rows || []).map((row: unknown[]) => Number(row[0]))
+    const vinculados = (result.rows || [])
+      .map((row: unknown[]) => Number(row[0]))
+      .filter((v) => v > 0) // Solo valores positivos válidos
     const requestedVinculados = (selectedVinculados && selectedVinculados.length > 0)
-      ? selectedVinculados
+      ? selectedVinculados.filter((v) => v > 0)
       : vinculados.slice(0, limit)
     const summaries: SellerPortfolioSummary[] = []
 

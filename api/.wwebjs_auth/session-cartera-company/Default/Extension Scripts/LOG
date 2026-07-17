@@ -1,2 +1,4 @@
-2026/07/10-08:30:31.758 5b4c Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Scripts since it was missing.
-2026/07/10-08:30:31.783 5b4c Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Scripts/MANIFEST-000001
+2026/07/17-11:30:13.542 1694 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Scripts since it was missing.
+2026/07/17-11:30:13.562 1694 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Scripts/MANIFEST-000001
+2026/07/17-11:30:13.563 1694 Recovering log #3
+2026/07/17-11:30:13.565 1694 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Scripts/000003.log 
