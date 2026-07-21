@@ -440,6 +440,18 @@ export function ReportTable ({
   withPhoneCount,
   withoutPhoneCount
 }: ReportTableProps) {
+  const getNumberValue = (row: Record<string, unknown>, keys: string[]) => {
+    for (const key of keys) {
+      const value = row[key]
+      if (typeof value === 'number') return value
+      if (typeof value === 'string' && value.trim() !== '') {
+        const parsed = Number(value.replace(/[^0-9.-]+/g, ''))
+        if (!Number.isNaN(parsed)) return parsed
+      }
+    }
+    return 0
+  }
+
   const hasSummaryRows = filteredSummaries.length > 0 || data?.bulk
 
   return (
@@ -462,108 +474,138 @@ export function ReportTable ({
                 <Table>
                     {hasSummaryRows
                       ? (
-                        <>
-                            <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
-                                <TableRow>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>
-                                        <input
-                                            type='checkbox'
-                                            checked={filteredSummaries.length > 0 && selectedVinculados.length === filteredSummaries.length}
-                                            onChange={toggleSelectAll}
-                                            aria-label='Seleccionar todas las asesoras'
-                                        />
-                                    </TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Vinculado</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Asesora</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Documento</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Empresa</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Teléfono</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Acciones</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo inicial</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Base</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Ingresos</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Egresos</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Abonos</TableHeaderCell>
-                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo final</TableHeaderCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {(filteredSummaries.length > 0 ? filteredSummaries : data?.cartera || []).map((item, index) => (
-                                    <TableRow
-                                        key={`${item.vinculado || String((item as Record<string, unknown>).documento || index)}-${index}`}
-                                        className={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0) ? 'bg-sky-50 shadow-inner' : 'hover:bg-slate-50'}
-                                    >
-                                        <TableCell>
+                            <>
+                                <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
+                                    <TableRow>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>
                                             <input
                                                 type='checkbox'
-                                                checked={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0)}
-                                                onChange={() => toggleVinculadoSelection((item as BulkSummary).vinculado || 0)}
-                                                aria-label={`Seleccionar ${(item as BulkSummary).sellerName || (item as Record<string, unknown>).vinculado || (item as Record<string, unknown>).documento}`}
+                                                checked={filteredSummaries.length > 0 && selectedVinculados.length === filteredSummaries.length}
+                                                onChange={toggleSelectAll}
+                                                aria-label='Seleccionar todas las asesoras'
                                             />
-                                        </TableCell>
-                                        <TableCell>{(item as BulkSummary).vinculado || String((item as Record<string, unknown>).vinculado || (item as Record<string, unknown>).documento || 'N/D')}</TableCell>
-                                        <TableCell>{(item as BulkSummary).sellerName || 'N/D'}</TableCell>
-                                        <TableCell>{(item as BulkSummary).documento || String((item as Record<string, unknown>).documento || (item as Record<string, unknown>).vinculado || 'N/D')}</TableCell>
-                                        <TableCell>{(item as BulkSummary).empresa === '39632' ? 'Servired' : 'Multired'}</TableCell>
-                                        <TableCell>{(item as BulkSummary).phone || 'Sin teléfono'}</TableCell>
-                                        <TableCell>
-                                            <Button
-                                                type='button'
-                                                variant='secondary'
-                                                onClick={() => openPhoneUpdateDialog(String((item as BulkSummary).documento || (item as Record<string, unknown>).vinculado || ''), (item as BulkSummary).phone || null)}
-                                                disabled={!((item as BulkSummary).documento || (item as Record<string, unknown>).vinculado)}
-                                            >
-                                                Actualizar teléfono
-                                            </Button>
-                                        </TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).saldoInicial || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).base || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).ingresos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).egresos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).abonos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).saldoFinal || 0)}</TableCell>
+                                        </TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Vinculado</TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Asesora</TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Documento</TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Empresa</TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Teléfono</TableHeaderCell>
+                                        <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Acciones</TableHeaderCell>
+                                        <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Base</TableHeaderCell>
+                                        <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo Ant.</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Débito</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Crédito</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Nuevo Saldo</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Cartera</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Rechazados</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Aceptados</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Pendiente Conteo</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Venta Bnet</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Cuadre Web</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Anulados</TableHeaderCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                            <TableFoot className='sticky bottom-0 bg-slate-100 z-30'>
-                                <TableRow>
-                                    <TableHeaderCell colSpan={10} scope='row' className='text-right text-sm font-semibold text-slate-700'>Total de carteras:</TableHeaderCell>
-                                    <TableHeaderCell scope='row' className='text-right text-sm font-semibold text-slate-700'>{filteredSummaries.length}</TableHeaderCell>
-                                </TableRow>
-                            </TableFoot>
-                        </>
+                                </TableHead>
+                                <TableBody>
+                                    {(filteredSummaries.length > 0 ? filteredSummaries : data?.cartera || []).map((item, index) => {
+                                      const row = item as Record<string, unknown>
+                                      return (
+                                            <TableRow
+                                                key={`${(item as BulkSummary).vinculado || String(row.documento || index)}-${index}`}
+                                                className={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0) ? 'bg-sky-50 shadow-inner' : 'hover:bg-slate-50'}
+                                            >
+                                                <TableCell>
+                                                    <input
+                                                        type='checkbox'
+                                                        checked={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0)}
+                                                        onChange={() => toggleVinculadoSelection((item as BulkSummary).vinculado || 0)}
+                                                        aria-label={`Seleccionar ${(item as BulkSummary).sellerName || row.vinculado || row.documento}`}
+                                                    />
+                                                </TableCell>
+                                                <TableCell>{(item as BulkSummary).vinculado || String(row.vinculado || row.documento || 'N/D')}</TableCell>
+                                                <TableCell>{(item as BulkSummary).sellerName || 'N/D'}</TableCell>
+                                                <TableCell>{(item as BulkSummary).documento || String(row.documento || row.vinculado || 'N/D')}</TableCell>
+                                                <TableCell>{String((item as BulkSummary).empresa === '39632' ? 'Servired' : 'Multired')}</TableCell>
+                                                <TableCell>{(item as BulkSummary).phone || 'Sin teléfono'}</TableCell>
+                                                <TableCell>
+                                                    <Button
+                                                        type='button'
+                                                        variant='secondary'
+                                                        onClick={() => openPhoneUpdateDialog(String((item as BulkSummary).documento || row.vinculado || ''), (item as BulkSummary).phone || null)}
+                                                        disabled={!((item as BulkSummary).documento || row.vinculado)}
+                                                    >
+                                                        Actualizar teléfono
+                                                    </Button>
+                                                </TableCell>
+                                                <TableCell>{formatValue(getNumberValue(row, ['Base', 'BASE', 'base']))}</TableCell>
+                                                <TableCell>{formatValue(getNumberValue(row, ['SaldoAnt', 'SALDO_ANT', 'saldoInicial']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Debito', 'DEBITO', 'ingresos']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Credito', 'CREDITO', 'egresos']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['NuevoSaldo', 'NUEVOSALDO', 'saldoFinal']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Cartera', 'SALDO_ANT', 'cartera']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Rechazados', 'RECHAZADOS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Aceptados', 'ACEPTADOS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['PendientesCont', 'PENDIENTES_CONT', 'pendienteConteo']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Vtabnet', 'VTABNET']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['CuadreWeb', 'CUADRE_WEB', 'VTASIISS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Anulados', 'ANULADOS', 'VTA_S1']))}</TableCell>
+                                            </TableRow>
+                                      )
+                                    })}
+                                </TableBody>
+                                <TableFoot className='sticky bottom-0 bg-slate-100 z-30'>
+                                    <TableRow>
+                                        <TableHeaderCell colSpan={10} scope='row' className='text-right text-sm font-semibold text-slate-700'>Total de carteras:</TableHeaderCell>
+                                        <TableHeaderCell scope='row' className='text-right text-sm font-semibold text-slate-700'>{filteredSummaries.length}</TableHeaderCell>
+                                    </TableRow>
+                                </TableFoot>
+                            </>
                         )
                       : (
-                        <>
-                            <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
-                                <TableRow>
-                                    <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Fecha</TableHeaderCell>
-                                    <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Ingresos</TableHeaderCell>
-                                    <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Egresos</TableHeaderCell>
-                                    <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo Día</TableHeaderCell>
-                                    <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Abono Cartera</TableHeaderCell>
-                                    <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Diferencia día</TableHeaderCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {data?.cartera?.map((item, index) => (
-                                    <TableRow key={`${(item as Record<string, unknown>).fecha}-${index}`}>
-                                        <TableCell>{String((item as Record<string, unknown>).fecha || '').split('T')[0]}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(Number((item as Record<string, unknown>).ingresos || 0))}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(Number((item as Record<string, unknown>).egresos || 0))}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(Number((item as Record<string, unknown>).ingresos || 0) - Number((item as Record<string, unknown>).egresos || 0))}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(Number((item as Record<string, unknown>).abonos_cartera || 0))}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(Number((item as Record<string, unknown>).ingresos || 0) - Number((item as Record<string, unknown>).egresos || 0) - Number((item as Record<string, unknown>).abonos_cartera || 0))}</TableCell>
+                            <>
+                                <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
+                                    <TableRow>
+                                        <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Base</TableHeaderCell>
+                                        <TableHeaderCell className='text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo Ant.</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Débito</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Crédito</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Nuevo Saldo</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Cartera</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Rechazados</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Aceptados</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Pendiente Conteo</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Venta Bnet</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Cuadre Web</TableHeaderCell>
+                                        <TableHeaderCell className='text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Anulados</TableHeaderCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                            <TableFoot className='sticky bottom-0 bg-gray-100 z-30'>
-                                <TableRow>
-                                    <TableHeaderCell colSpan={5} scope='row' className='text-right'>Saldo final cartera:</TableHeaderCell>
-                                    <TableHeaderCell colSpan={1} scope='row' className='text-right'>{formatValue(data?.base ? (Number(data.base) + 0) : 0)}</TableHeaderCell>
-                                </TableRow>
-                            </TableFoot>
-                        </>
+                                </TableHead>
+                                <TableBody>
+                                    {data?.cartera?.map((item, index) => {
+                                      const row = item as Record<string, unknown>
+                                      return (
+                                            <TableRow key={`${row.vinculado || index}-${index}`}>
+                                                <TableCell>{formatValue(getNumberValue(row, ['Base', 'BASE', 'base']))}</TableCell>
+                                                <TableCell>{formatValue(getNumberValue(row, ['SaldoAnt', 'SALDO_ANT', 'saldoInicial']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Debito', 'DEBITO', 'ingresos']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Credito', 'CREDITO', 'egresos']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['NuevoSaldo', 'NUEVOSALDO', 'saldoFinal']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Cartera', 'SALDO_ANT', 'cartera']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Rechazados', 'RECHAZADOS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Aceptados', 'ACEPTADOS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['PendientesCont', 'PENDIENTES_CONT', 'pendienteConteo']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Vtabnet', 'VTABNET']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['CuadreWeb', 'CUADRE_WEB', 'VTASIISS']))}</TableCell>
+                                                <TableCell className='text-right'>{formatValue(getNumberValue(row, ['Anulados', 'ANULADOS', 'VTA_S1']))}</TableCell>
+                                            </TableRow>
+                                      )
+                                    })}
+                                </TableBody>
+                                <TableFoot className='sticky bottom-0 bg-gray-100 z-30'>
+                                    <TableRow>
+                                        <TableHeaderCell colSpan={11} scope='row' className='text-right'>Total de carteras:</TableHeaderCell>
+                                        <TableHeaderCell scope='row' className='text-right'>{formatValue(data?.cartera ? (data.cartera.length) : 0)}</TableHeaderCell>
+                                    </TableRow>
+                                </TableFoot>
+                            </>
                         )}
                 </Table>
             </TableRoot>

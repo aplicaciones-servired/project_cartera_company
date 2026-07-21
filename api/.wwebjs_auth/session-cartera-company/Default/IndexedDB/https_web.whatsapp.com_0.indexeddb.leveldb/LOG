@@ -1,13 +1,30 @@
-2026/07/21-11:08:19.701 26b8 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2026/07/21-11:08:19.702 26b8 Recovering log #254
-2026/07/21-11:08:19.714 26b8 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000254.log 
-2026/07/21-11:08:19.715 26b8 Delete type=2 #244
-2026/07/21-11:08:19.715 26b8 Delete type=2 #245
-2026/07/21-11:08:19.715 26b8 Delete type=2 #246
-2026/07/21-11:08:19.715 26b8 Delete type=2 #247
-2026/07/21-11:08:19.715 26b8 Delete type=2 #248
-2026/07/21-11:08:19.716 26b8 Delete type=2 #249
-2026/07/21-11:08:19.716 26b8 Delete type=2 #250
-2026/07/21-11:08:19.716 26b8 Delete type=2 #251
-2026/07/21-11:08:19.716 26b8 Delete type=2 #252
-2026/07/21-11:08:19.716 26b8 Delete type=2 #255
+2026/07/21-12:28:04.877 1140 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2026/07/21-12:28:04.878 1140 Recovering log #254
+2026/07/21-12:28:04.979 1140 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000254.log 
+2026/07/21-12:28:12.924 1140 Level-0 table #268: started
+2026/07/21-12:28:12.992 1140 Level-0 table #268: 1301920 bytes OK
+2026/07/21-12:28:12.994 1140 Delete type=0 #254
+2026/07/21-12:28:13.005 65f0 Compacting 1@1 + 10@2 files
+2026/07/21-12:28:13.413 65f0 Generated table #269@1: 45665 keys, 2220154 bytes
+2026/07/21-12:28:13.488 65f0 Generated table #270@1: 515 keys, 2121906 bytes
+2026/07/21-12:28:13.718 65f0 Generated table #271@1: 503 keys, 2124222 bytes
+2026/07/21-12:28:13.848 65f0 Generated table #272@1: 1572 keys, 2139501 bytes
+2026/07/21-12:28:13.951 65f0 Generated table #273@1: 2336 keys, 2144196 bytes
+2026/07/21-12:28:14.243 65f0 Generated table #274@1: 23869 keys, 2228597 bytes
+2026/07/21-12:28:14.404 65f0 Generated table #275@1: 15155 keys, 2177284 bytes
+2026/07/21-12:28:14.680 65f0 Generated table #276@1: 87625 keys, 2233516 bytes
+2026/07/21-12:28:15.141 65f0 Generated table #277@1: 106560 keys, 2257414 bytes
+2026/07/21-12:28:15.264 65f0 Generated table #278@1: 22526 keys, 579638 bytes
+2026/07/21-12:28:15.264 65f0 Compacted 1@1 + 10@2 files => 20226428 bytes
+2026/07/21-12:28:15.266 65f0 compacted to: files[ 0 0 10 0 0 0 0 ]
+2026/07/21-12:28:15.267 65f0 Delete type=2 #256
+2026/07/21-12:28:15.267 65f0 Delete type=2 #257
+2026/07/21-12:28:15.267 65f0 Delete type=2 #258
+2026/07/21-12:28:15.267 65f0 Delete type=2 #259
+2026/07/21-12:28:15.268 65f0 Delete type=2 #260
+2026/07/21-12:28:15.268 65f0 Delete type=2 #261
+2026/07/21-12:28:15.268 65f0 Delete type=2 #262
+2026/07/21-12:28:15.268 65f0 Delete type=2 #263
+2026/07/21-12:28:15.268 65f0 Delete type=2 #264
+2026/07/21-12:28:15.268 65f0 Delete type=2 #265
+2026/07/21-12:28:15.268 65f0 Delete type=2 #268

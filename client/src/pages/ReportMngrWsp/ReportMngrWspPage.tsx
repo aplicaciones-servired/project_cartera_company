@@ -27,7 +27,51 @@ export default function ReportMngrWspPage () {
   const [phoneUpdatePhone, setPhoneUpdatePhone] = useState<string>('')
   const [savingPhone, setSavingPhone] = useState<boolean>(false)
 
-  const bulkSummaries = (data?.cartera || []) as BulkSummary[]
+  const bulkSummaries = normalizeCartera(data?.cartera || [])
+
+  function normalizeCartera (items: unknown[] = []): BulkSummary[] {
+    return items.map(item => {
+      const row = item as Record<string, unknown> & { Seller?: Record<string, unknown> }
+      const numberValue = (value: unknown): number => {
+        if (typeof value === 'number') return value
+        if (typeof value === 'string' && value.trim() !== '') {
+          const cleaned = value.replace(/[^0-9-]+/g, '')
+          const parsed = Number(cleaned)
+          return Number.isNaN(parsed) ? 0 : parsed
+        }
+        return 0
+      }
+
+      const normalized = {
+        ...row,
+        vinculado: Number(row.vinculado ?? row.VINCULADO ?? 0),
+        documento: String(row.documento ?? row.DOCUMENTO ?? row.vinculado ?? row.VINCULADO ?? ''),
+        empresa: String(row.empresa ?? row.EMPRESA ?? row.empresa ?? ''),
+        sellerName: row.sellerName ?? (typeof row.Seller === 'object' && row.Seller !== null ? String(row.Seller.NOMBRES ?? '') : null) ?? null,
+        cargo: row.cargo ?? row.Cargo ?? row.cargo ?? null,
+        saldoInicial: row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt ?? numberValue(row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt),
+        Base: row.BASE ?? row.base ?? row.Base ?? numberValue(row.BASE ?? row.base ?? row.Base),
+        SaldoAnt: row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt ?? numberValue(row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt),
+        Debito: row.DEBITO ?? row.ingresos ?? row.Debito ?? numberValue(row.DEBITO ?? row.ingresos ?? row.Debito),
+        Credito: row.CREDITO ?? row.egresos ?? row.Credito ?? numberValue(row.CREDITO ?? row.egresos ?? row.Credito),
+        NuevoSaldo: row.NUEVOSALDO ?? row.saldoFinal ?? row.NuevoSaldo ?? numberValue(row.NUEVOSALDO ?? row.saldoFinal ?? row.NuevoSaldo),
+        Cartera: row.SALDO_ANT ?? row.cartera ?? row.Cartera ?? numberValue(row.SALDO_ANT ?? row.cartera ?? row.Cartera),
+        Rechazados: row.RECHAZADOS ?? row.Rechazados ?? numberValue(row.RECHAZADOS ?? row.Rechazados),
+        Aceptados: row.ACEPTADOS ?? row.Aceptados ?? numberValue(row.ACEPTADOS ?? row.Aceptados),
+        PendientesCont: row.PENDIENTES_CONT ?? row.PendientesCont ?? row.pendienteConteo ?? numberValue(row.PENDIENTES_CONT ?? row.PendientesCont ?? row.pendienteConteo),
+        Vtabnet: row.VTABNET ?? row.Vtabnet ?? row.vtabnet ?? numberValue(row.VTABNET ?? row.Vtabnet ?? row.vtabnet),
+        CuadreWeb: row.CUADRE_WEB ?? row.VTASIISS ?? row.CuadreWeb ?? row.vtasiss ?? numberValue(row.CUADRE_WEB ?? row.VTASIISS ?? row.CuadreWeb ?? row.vtasiss),
+        Anulados: row.ANULADOS ?? row.VTA_S1 ?? row.Anulados ?? row.vta_s1 ?? numberValue(row.ANULADOS ?? row.VTA_S1 ?? row.Anulados ?? row.vta_s1),
+        phone: row.phone ?? row.PHONE ?? null,
+        hasContact: Boolean(row.hasContact ?? row.HASCONTACT ?? row.hasContact),
+        isValidForDispatch: Boolean(row.isValidForDispatch ?? row.ISVALIDFORDISPATCH ?? row.isValidForDispatch),
+        validationReason: String(row.validationReason ?? row.VALIDATIONREASON ?? '') || null,
+        ccosto: row.ccosto ?? row.CCOSTO ?? row.ccosto ?? null
+      }
+
+      return normalized as unknown as BulkSummary
+    })
+  }
   const getCompanyGroup = (item: BulkSummary) => {
     console.log('[getCompanyGroup] empresa=', item.empresa, 'ccosto=', item.ccosto)
     const ccosto = String(item.ccosto || '').trim()
@@ -72,8 +116,9 @@ export default function ReportMngrWspPage () {
       }, { timeout: 180000 })
 
       console.log('dispatch response', response.data)
-      setData(response.data)
-      const sent = response.data?.sentCount || 0
+      const normalizedData = { ...response.data, cartera: normalizeCartera(response.data?.cartera || []) }
+      setData(normalizedData)
+      const sent = normalizedData?.sentCount || 0
       const skipped = response.data?.skippedCount || 0
       const failures = response.data?.failures || []
 
@@ -106,7 +151,7 @@ export default function ReportMngrWspPage () {
   }
 
   const toggleSelectAll = () => {
-    const allIds = displayedSource.map(item => item.vinculado)
+    const allIds = displayedSource.map(item => Number(item.vinculado))
     const allSelected = allIds.length > 0 && allIds.every(id => selectedVinculados.includes(id))
     setSelectedVinculados(allSelected ? [] : allIds)
   }
@@ -268,9 +313,10 @@ export default function ReportMngrWspPage () {
       return
     }
 
-    if (!selectedVinculados.includes(match.vinculado)) {
-      setSelectedVinculados(prev => [...prev, match.vinculado])
-      toast.success(`Se agregó la cartera ${match.vinculado} a la selección`)
+    const selectedId = Number(match.vinculado)
+    if (!selectedVinculados.includes(selectedId)) {
+      setSelectedVinculados(prev => [...prev, selectedId])
+      toast.success(`Se agregó la cartera ${selectedId} a la selección`)
     } else {
       toast('La cartera ya estaba seleccionada')
     }
@@ -283,7 +329,7 @@ export default function ReportMngrWspPage () {
         setLoadingDetallado(true)
         const empresaParam = companyFilter === 'servired' ? '101' : companyFilter === 'multired' ? '102' : '0'
         const resp = await axios.get(`${API_URL}/carteraDetalladoWsp?empresa=${empresaParam}&abs=false`)
-        setDisplayedSummaries(resp.data?.cartera || [])
+        setDisplayedSummaries(normalizeCartera(resp.data?.cartera || []))
       } catch (err) {
         console.error('Error cargando detallado WSP', err)
       } finally {
@@ -328,7 +374,7 @@ export default function ReportMngrWspPage () {
                       setLoadingDetallado(true)
                       const empresaParam = companyFilter === 'servired' ? '101' : companyFilter === 'multired' ? '102' : '0'
                       const resp = await axios.get(`${API_URL}/carteraDetalladoWsp?empresa=${empresaParam}&abs=false`)
-                      setDisplayedSummaries(resp.data?.cartera || [])
+                      setDisplayedSummaries(normalizeCartera(resp.data?.cartera || []))
                     } catch (err) {
                       console.error('Error recargando detallado', err)
                     } finally {
@@ -339,8 +385,9 @@ export default function ReportMngrWspPage () {
                   // buscar localmente por cédula
                   const match = displayedSummaries.find(s => String(s.documento) === documento || String(s.vinculado) === documento)
                   if (match) {
-                    if (!selectedVinculados.includes(match.vinculado)) setSelectedVinculados(prev => [...prev, match.vinculado])
-                    toast.success(`Se agregó la cartera ${match.vinculado} a la selección`)
+                    const selectedId = Number(match.vinculado)
+                    if (!selectedVinculados.includes(selectedId)) setSelectedVinculados(prev => [...prev, selectedId])
+                    toast.success(`Se agregó la cartera ${selectedId} a la selección`)
                   } else {
                     toast.error('No se encontró esa cédula en el detallado cargado')
                   }
