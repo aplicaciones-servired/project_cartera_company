@@ -1,3 +1,2 @@
-2026/07/21-12:28:03.454 60c8 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Site Characteristics Database/MANIFEST-000001
-2026/07/21-12:28:03.459 60c8 Recovering log #3
-2026/07/21-12:28:03.460 60c8 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Site Characteristics Database/000003.log 
+2026/07/21-16:32:22.980 353c Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Site Characteristics Database since it was missing.
+2026/07/21-16:32:23.014 353c Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Site Characteristics Database/MANIFEST-000001

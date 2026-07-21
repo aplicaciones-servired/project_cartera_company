@@ -1,3 +1,2 @@
-2026/07/21-12:28:03.625 3214 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/MANIFEST-000001
-2026/07/21-12:28:03.642 3214 Recovering log #4
-2026/07/21-12:28:03.651 3214 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/000004.log 
+2026/07/21-16:32:23.687 4ad4 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb since it was missing.
+2026/07/21-16:32:23.809 4ad4 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Local Storage\leveldb/MANIFEST-000001

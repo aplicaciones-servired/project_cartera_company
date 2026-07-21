@@ -1,3 +1,2 @@
-2026/07/21-12:28:03.455 65f0 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Sync Data\LevelDB/MANIFEST-000001
-2026/07/21-12:28:03.460 65f0 Recovering log #3
-2026/07/21-12:28:03.461 65f0 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Sync Data\LevelDB/000003.log 
+2026/07/21-16:32:22.964 2318 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Sync Data\LevelDB since it was missing.
+2026/07/21-16:32:22.986 2318 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Sync Data\LevelDB/MANIFEST-000001

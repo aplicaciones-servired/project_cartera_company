@@ -548,6 +548,9 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
         phone,
       });
 
+      const nuevoSaldo = calcularNuevoSaldo(cartera)
+      const carteraValue = calculateCartera(cartera)
+
       summaries.push({
         vinculado: Number(cartera.VINCULADO),
         empresa: cartera.EMPRESA,
@@ -559,14 +562,16 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
         SALDO_ANT: Number((cartera as any).SALDO_ANT || 0),
         DEBITO: Number((cartera as any).DEBITO || 0),
         CREDITO: Number((cartera as any).CREDITO || 0),
-        NUEVOSALDO: Number((cartera as any).NUEVOSALDO || 0),
+        NUEVOSALDO: nuevoSaldo,
+        NuevoSaldo: nuevoSaldo,
         RECHAZADOS: Number((cartera as any).RECHAZADOS || 0),
         ACEPTADOS: Number((cartera as any).ACEPTADOS || 0),
         PENDIENTES_CONT: Number((cartera as any).PENDIENTES_CONT || 0),
         VTABNET: Number((cartera as any).VTABNET || 0),
         CUADRE_WEB: Number((cartera as any).VTASIISS || 0),
         ANULADOS: Number((cartera as any).VTA_S1 || 0),
-        cartera: cartera.SALDO_ANT || 0,
+        Cartera: carteraValue,
+        cartera: carteraValue,
         saldoInicial: cartera.SALDO_ANT || 0,
         sellerName: seller?.NOMBRES || cartera.Seller?.NOMBRES || "",
         phone: phone || "",

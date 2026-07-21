@@ -54,9 +54,9 @@ export default function ReportMngrWspPage () {
         SaldoAnt: row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt ?? numberValue(row.SALDO_ANT ?? row.saldoInicial ?? row.SaldoAnt),
         Debito: row.DEBITO ?? row.ingresos ?? row.Debito ?? numberValue(row.DEBITO ?? row.ingresos ?? row.Debito),
         Credito: row.CREDITO ?? row.egresos ?? row.Credito ?? numberValue(row.CREDITO ?? row.egresos ?? row.Credito),
-        NuevoSaldo: row.NUEVOSALDO ?? row.saldoFinal ?? row.NuevoSaldo ?? numberValue(row.NUEVOSALDO ?? row.saldoFinal ?? row.NuevoSaldo),
-        Cartera: row.SALDO_ANT ?? row.cartera ?? row.Cartera ?? numberValue(row.SALDO_ANT ?? row.cartera ?? row.Cartera),
-        Rechazados: row.RECHAZADOS ?? row.Rechazados ?? numberValue(row.RECHAZADOS ?? row.Rechazados),
+        NuevoSaldo: row.NUEVOSALDO ?? row.NuevoSaldo ?? row.nuevoSaldo ?? row.saldoFinal ?? numberValue(row.NUEVOSALDO ?? row.NuevoSaldo ?? row.nuevoSaldo ?? row.saldoFinal),
+        Cartera: row.Cartera ?? row.cartera ?? row.SALDO_ANT ?? numberValue(row.Cartera ?? row.cartera ?? row.SALDO_ANT),
+        Rechazados: row.RECHAZADOS ?? row.Rechazados ?? row.rechazados ?? numberValue(row.RECHAZADOS ?? row.Rechazados ?? row.rechazados),
         Aceptados: row.ACEPTADOS ?? row.Aceptados ?? numberValue(row.ACEPTADOS ?? row.Aceptados),
         PendientesCont: row.PENDIENTES_CONT ?? row.PendientesCont ?? row.pendienteConteo ?? numberValue(row.PENDIENTES_CONT ?? row.PendientesCont ?? row.pendienteConteo),
         Vtabnet: row.VTABNET ?? row.Vtabnet ?? row.vtabnet ?? numberValue(row.VTABNET ?? row.Vtabnet ?? row.vtabnet),
@@ -345,7 +345,28 @@ export default function ReportMngrWspPage () {
   const positiveDisplayedSummaries = displayedSummaries.filter(item => Number(item.saldoInicial || 0) > 0)
 
   // prepare displayed summaries: prefer backend bulk, otherwise use detallado fetched
-  const displayedSource = data?.bulk ? positiveFilteredSummaries : positiveDisplayedSummaries
+  const displayedSource = useMemo(() => {
+    const source = data?.bulk ? positiveFilteredSummaries : positiveDisplayedSummaries
+    if (!selectedVinculados.length) return source
+
+    const selectedOrder = new Map<number, number>()
+    selectedVinculados.forEach((id, index) => {
+      selectedOrder.set(id, index)
+    })
+
+    return [...source].sort((a, b) => {
+      const aSelected = selectedOrder.has(Number(a.vinculado || 0))
+      const bSelected = selectedOrder.has(Number(b.vinculado || 0))
+
+      if (aSelected && bSelected) {
+        return (selectedOrder.get(Number(a.vinculado || 0)) ?? 0) - (selectedOrder.get(Number(b.vinculado || 0)) ?? 0)
+      }
+      if (aSelected) return -1
+      if (bSelected) return 1
+      return 0
+    })
+  }, [data?.bulk, positiveFilteredSummaries, positiveDisplayedSummaries, selectedVinculados])
+
   const displayedWithPhoneCount = displayedSource.filter(x => x.isValidForDispatch).length
   const displayedWithoutPhoneCount = displayedSource.length - displayedWithPhoneCount
 
