@@ -30,6 +30,7 @@ export type ReportResponse = {
   sentCount?: number
   skippedCount?: number
   dispatched?: Array<Record<string, unknown>>
+  failures?: Array<{ vinculado?: number; phone?: string; message?: string }>
   phone?: string | null
   hasContact?: boolean
 }

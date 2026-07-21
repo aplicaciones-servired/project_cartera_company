@@ -1,4 +1,3 @@
-2026/07/17-11:30:13.513 fc8 Creating DB D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Rules since it was missing.
-2026/07/17-11:30:13.531 fc8 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Rules/MANIFEST-000001
-2026/07/17-11:30:13.533 fc8 Recovering log #3
-2026/07/17-11:30:13.533 fc8 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Rules/000003.log 
+2026/07/21-10:36:22.210 158 Reusing MANIFEST D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Rules/MANIFEST-000001
+2026/07/21-10:36:22.211 158 Recovering log #3
+2026/07/21-10:36:22.211 158 Reusing old log D:\project_cartera_company\api\.wwebjs_auth\session-cartera-company\Default\Extension Rules/000003.log 

@@ -440,9 +440,11 @@ export function ReportTable ({
   withPhoneCount,
   withoutPhoneCount
 }: ReportTableProps) {
+  const hasSummaryRows = filteredSummaries.length > 0 || data?.bulk
+
   return (
         <Card className='mt-6 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm'>
-            {data?.bulk && (
+            {hasSummaryRows && (
                 <div className='flex flex-col gap-3 border-b border-slate-200 bg-slate-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between'>
                     <div>
                         <p className='text-sm font-semibold text-slate-700'>Resultados actuales</p>
@@ -458,7 +460,7 @@ export function ReportTable ({
 
             <TableRoot className='h-[72vh] overflow-y-auto'>
                 <Table>
-                    {data?.bulk
+                    {hasSummaryRows
                       ? (
                         <>
                             <TableHead className='sticky top-0 bg-slate-900 text-white z-30'>
@@ -474,6 +476,7 @@ export function ReportTable ({
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Vinculado</TableHeaderCell>
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Asesora</TableHeaderCell>
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Documento</TableHeaderCell>
+                                    <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Empresa</TableHeaderCell>
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Teléfono</TableHeaderCell>
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-left text-xs uppercase tracking-[0.12em] text-slate-300'>Acciones</TableHeaderCell>
                                     <TableHeaderCell className='border-slate-700 bg-slate-950 text-right text-xs uppercase tracking-[0.12em] text-slate-300'>Saldo inicial</TableHeaderCell>
@@ -485,39 +488,40 @@ export function ReportTable ({
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {filteredSummaries.map((item, index) => (
+                                {(filteredSummaries.length > 0 ? filteredSummaries : data?.cartera || []).map((item, index) => (
                                     <TableRow
-                                        key={`${item.vinculado}-${index}`}
-                                        className={selectedVinculadoSet.has(item.vinculado) ? 'bg-sky-50 shadow-inner' : 'hover:bg-slate-50'}
+                                        key={`${item.vinculado || String((item as Record<string, unknown>).documento || index)}-${index}`}
+                                        className={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0) ? 'bg-sky-50 shadow-inner' : 'hover:bg-slate-50'}
                                     >
                                         <TableCell>
                                             <input
                                                 type='checkbox'
-                                                checked={selectedVinculadoSet.has(item.vinculado)}
-                                                onChange={() => toggleVinculadoSelection(item.vinculado)}
-                                                aria-label={`Seleccionar ${item.sellerName || item.vinculado}`}
+                                                checked={selectedVinculadoSet.has((item as BulkSummary).vinculado || 0)}
+                                                onChange={() => toggleVinculadoSelection((item as BulkSummary).vinculado || 0)}
+                                                aria-label={`Seleccionar ${(item as BulkSummary).sellerName || (item as Record<string, unknown>).vinculado || (item as Record<string, unknown>).documento}`}
                                             />
                                         </TableCell>
-                                        <TableCell>{item.vinculado}</TableCell>
-                                        <TableCell>{item.sellerName || 'N/D'}</TableCell>
-                                        <TableCell>{item.documento || 'N/D'}</TableCell>
-                                        <TableCell>{item.phone || 'Sin teléfono'}</TableCell>
+                                        <TableCell>{(item as BulkSummary).vinculado || String((item as Record<string, unknown>).vinculado || (item as Record<string, unknown>).documento || 'N/D')}</TableCell>
+                                        <TableCell>{(item as BulkSummary).sellerName || 'N/D'}</TableCell>
+                                        <TableCell>{(item as BulkSummary).documento || String((item as Record<string, unknown>).documento || (item as Record<string, unknown>).vinculado || 'N/D')}</TableCell>
+                                        <TableCell>{(item as BulkSummary).empresa === '39632' ? 'Servired' : 'Multired'}</TableCell>
+                                        <TableCell>{(item as BulkSummary).phone || 'Sin teléfono'}</TableCell>
                                         <TableCell>
                                             <Button
                                                 type='button'
                                                 variant='secondary'
-                                                onClick={() => openPhoneUpdateDialog(String(item.documento || item.vinculado), item.phone || null)}
-                                                disabled={!item.documento && !item.vinculado}
+                                                onClick={() => openPhoneUpdateDialog(String((item as BulkSummary).documento || (item as Record<string, unknown>).vinculado || ''), (item as BulkSummary).phone || null)}
+                                                disabled={!((item as BulkSummary).documento || (item as Record<string, unknown>).vinculado)}
                                             >
                                                 Actualizar teléfono
                                             </Button>
                                         </TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.saldoInicial || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.base || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.ingresos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.egresos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.abonos || 0)}</TableCell>
-                                        <TableCell className='text-right'>{formatValue(item.saldoFinal || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).saldoInicial || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).base || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).ingresos || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).egresos || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).abonos || 0)}</TableCell>
+                                        <TableCell className='text-right'>{formatValue((item as BulkSummary).saldoFinal || 0)}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

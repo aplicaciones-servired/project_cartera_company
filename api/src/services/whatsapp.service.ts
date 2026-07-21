@@ -235,7 +235,23 @@ export const sendWhatsAppText = async (phone: string, message: string): Promise<
     throw new Error('El teléfono es obligatorio')
   }
 
-  await whatsappClient.sendMessage(`${normalizedPhone}@c.us`, message)
+  const numberId = await whatsappClient.getNumberId(normalizedPhone)
+  if (!numberId) {
+    throw new Error(`El número ${normalizedPhone} no está registrado en WhatsApp`)
+  }
+
+  const chatId = typeof numberId === 'string'
+    ? numberId
+    : (numberId as any)._serialized || `${normalizedPhone}@c.us`
+
+  console.log(`[WhatsApp] Enviando a ${chatId}`)
+
+  if (!whatsappClient || typeof whatsappClient.sendMessage !== 'function') {
+    throw new Error('Cliente de WhatsApp no está disponible')
+  }
+
+  await whatsappClient.sendMessage(chatId, message)
+  console.log(`[WhatsApp] Mensaje enviado a ${chatId}`)
 }
 
 export const resetWhatsAppSession = async (): Promise<{ message: string }> => {

@@ -98,17 +98,24 @@ const findContactPhone = async (documento?: string | number | null): Promise<str
   return normalizePhone(contact?.CELULAR || contact?.TELEFONO || undefined)
 }
 
-const buildBulkMessage = (summary: SellerPortfolioSummary): string => {
+const buildBulkMessage = (summary: BulkSummary): string => {
+  const saldoInicial = Number(summary.saldoInicial ?? summary.cartera ?? 0)
+  const base = Number(summary.base ?? 0)
+  const ingresos = Number(summary.ingresos ?? 0)
+  const egresos = Number(summary.egresos ?? 0)
+  const abonos = Number(summary.abonos ?? 0)
+  // const saldoFinal = Number(summary.saldoFinal ?? (saldoInicial - base - ingresos + egresos - abonos) ?? 0)
+
   return [
     'Cartera Manager',
     summary.sellerName ? `Asesora: ${summary.sellerName}` : 'Asesora: N/D',
     `Vinculado: ${summary.vinculado}`,
-    `Saldo inicial: ${summary.saldoInicial.toLocaleString('es-CO')}`,
-    `Base asignada: ${summary.base.toLocaleString('es-CO')}`,
-    `Ingresos: ${summary.ingresos.toLocaleString('es-CO')}`,
-    `Egresos: ${summary.egresos.toLocaleString('es-CO')}`,
-    `Abonos cartera: ${summary.abonos.toLocaleString('es-CO')}`,
-    `Saldo final cartera: ${summary.saldoFinal.toLocaleString('es-CO')}`
+    `Cartera: ${saldoInicial.toLocaleString('es-CO')}`,
+    // `Base asignada: ${base.toLocaleString('es-CO')}`,
+    // `Ingresos: ${ingresos.toLocaleString('es-CO')}`,
+    // `Egresos: ${egresos.toLocaleString('es-CO')}`,
+    // `Abonos cartera: ${abonos.toLocaleString('es-CO')}`,
+    // `Saldo final cartera: ${saldoFinal.toLocaleString('es-CO')}`
   ].join('\n')
 }
 
@@ -365,8 +372,6 @@ export const getReportMngr = async (req: Request, res: Response) => {
 }
 
 const schemaWsp = z.object({
-  fecha1: z.string().optional(),
-  fecha2: z.string().optional(),
   vinculado: z.string().optional(),
   selectedVinculados: z.array(z.coerce.number().int().positive()).optional(),
   limit: z.coerce.number().int().positive().max(200).optional(),
@@ -417,157 +422,220 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
     }
   }
 
-  const { fecha1, fecha2, vinculado, selectedVinculados, limit = 20 } = parsed.data
+  const { vinculado, selectedVinculados, limit = 20 } = parsed.data
 
-  if (!fecha1 || !fecha2) {
-    return res.status(400).json({ message: 'Fechas obligatorias' })
-  }
+  // Traer carteras positivas del día actual
+  let summaries: BulkSummary[] = []
   
-  // Validar y limpiar fechas
-  const trimmedFecha1 = fecha1.trim();
-  const trimmedFecha2 = fecha2.trim();
-  
-  if (!trimmedFecha1.match(/^\d{4}-\d{2}-\d{2}$/) || !trimmedFecha2.match(/^\d{4}-\d{2}-\d{2}$/)) {
-    return res.status(400).json({ message: 'Formato de fecha inválido. Use YYYY-MM-DD' })
-  }
-  
-  const frmDate1 = trimmedFecha1.split('-').reverse().join('-');
-  const frmDate2 = trimmedFecha2.split('-').reverse().join('-');
-
-  let connection: Connection | undefined;
-  let connectionClosedByTimeout = false;
-  let requestId = '';
-
   try {
-    const connResult = await getConnectionSafe(getMngrPool, 'oracleMngr');
-    connection = connResult.connection;
-    requestId = connResult.requestId;
+    // Traer carteras positivas de ambas empresas
+    const carterasServired = await CarteraDataServices('Servired', true)
+    const carterasMultired = await CarteraDataServices('Multired', true)
+    const allCarteras = [...carterasServired, ...carterasMultired]
 
-    const vinculadoAsInt = vinculado ? parseInt(vinculado, 10) : undefined;
+    if (allCarteras.length === 0) {
+      return res.status(200).json({ cartera: [], CarteraInicial: null, Seller: null, base: 0, bulk: true })
+    }
 
-    if (vinculadoAsInt) {
-      const summary = await buildPortfolioSummary({
-        vinculado: vinculadoAsInt,
-        fecha1,
-        fecha2,
-        connection,
-        requestId,
-        frmDate1,
-        frmDate2,
+    // Procesar cada cartera
+    for (const cartera of allCarteras) {
+      // Ensure we have seller info (some carteras may not include seller in the join)
+      let seller = cartera.Seller || null
+      if (!seller || !seller.DOCUMENTO) {
+        try {
+          const found = await Sellers.findOne({ where: { DOCUMENTO: String(cartera.VINCULADO) } })
+          if (found) seller = found
+        } catch (err) {
+          // ignore lookup errors, validation will handle missing fields
+        }
+      }
+
+      const phone = await findContactPhone(seller?.DOCUMENTO || cartera.VINCULADO)
+      const validation = getDispatchValidation({
+        documento: seller?.DOCUMENTO || null,
+        ccosto: seller?.CCOSTO || null,
+        phone,
       })
 
-      return res.status(200).json({
-        cartera: summary.cartera,
-        CarteraInicial: { SALDO_ANT: summary.saldoInicial },
-        Seller: {
-          NOMBRES: summary.sellerName,
-          CCOSTO: summary.ccosto,
-          NOMBRECARGO: summary.cargo,
-          DOCUMENTO: summary.documento,
-        },
-        base: summary.base,
-        bulk: false,
-        phone: summary.phone,
-        hasContact: summary.hasContact,
+      summaries.push({
+        vinculado: Number(cartera.VINCULADO),
+        empresa: cartera.EMPRESA,
+        nombres: cartera.Seller?.NOMBRES || '',
+        documento: seller?.DOCUMENTO || cartera.Seller?.DOCUMENTO || '',
+        cargo: cartera.Seller?.NOMBRECARGO || '',
+        cartera: cartera.SALDO_ANT || 0,
+        saldoInicial: cartera.SALDO_ANT || 0,
+        sellerName: seller?.NOMBRES || cartera.Seller?.NOMBRES || '',
+        phone: phone || '',
+        hasContact: Boolean(phone),
+        isValidForDispatch: validation.isValidForDispatch,
+        validationReason: validation.validationReason,
+        ccosto: seller?.CCOSTO || cartera.Seller?.CCOSTO || '',
+        base: cartera.BASE || 0,
+        base_id: undefined
       })
     }
 
-    console.log(`[${requestId}] Ejecutando consulta masiva de cartera para fechas ${fecha1}-${fecha2}`);
+    // Eliminar duplicados por vinculado para evitar doble envío si aparece en varias empresas
+    const uniqueSummariesByVinculado = summaries.reduce<Record<number, BulkSummary>>((acc, summary) => {
+      const existing = acc[summary.vinculado]
+      if (!existing) {
+        acc[summary.vinculado] = summary
+        return acc
+      }
 
-    const { result } = await executeWithTimeout<RowType[][]>(
-      connection,
-      `SELECT DISTINCT mcnVincula vinculado
-      FROM manager.mngmcn mn
-      WHERE mcncuenta = '13459501'
-      AND mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
-      AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
-      ORDER BY mcnVincula`,
-      { fecha1: frmDate1, fecha2: frmDate2 },
-      { timeout: 60000, requestId }
-    )
+      const shouldReplace = !existing.isValidForDispatch && summary.isValidForDispatch
+      if (shouldReplace) {
+        acc[summary.vinculado] = summary
+      }
+      return acc
+    }, {})
 
-    const vinculados = (result.rows || [])
-      .map((row: unknown[]) => Number(row[0]))
-      .filter((v) => v > 0) // Solo valores positivos válidos
-    const requestedVinculados = (selectedVinculados && selectedVinculados.length > 0)
-      ? selectedVinculados.filter((v) => v > 0)
-      : vinculados.slice(0, limit)
-    const summaries: SellerPortfolioSummary[] = []
+    summaries = Object.values(uniqueSummariesByVinculado)
 
-    for (const currentVinculado of requestedVinculados) {
-      const summary = await buildPortfolioSummary({
-        vinculado: currentVinculado,
-        fecha1,
-        fecha2,
-        connection,
-        requestId,
-        frmDate1,
-        frmDate2,
-      })
-
-      summaries.push(summary)
+    // Si se busca un documento específico
+    if (vinculado) {
+      const vinculadoInt = parseInt(vinculado, 10)
+      const specific = summaries.find(s => s.vinculado === vinculadoInt)
+      if (specific) {
+        return res.status(200).json({
+          cartera: [specific],
+          CarteraInicial: { SALDO_ANT: specific.saldoInicial },
+          Seller: { NOMBRES: specific.sellerName, DOCUMENTO: specific.documento, CCOSTO: specific.ccosto, NOMBRECARGO: specific.cargo },
+          base: specific.base,
+          bulk: false,
+          phone: specific.phone,
+          hasContact: specific.hasContact
+        })
+      }
     }
 
-    const eligibleSummaries = summaries.filter((summary) => summary.isValidForDispatch)
-
+    // Si se seleccionan vinculados específicos en modo dispatch, enviar WhatsApp
     if (mode === 'dispatch') {
-      const dispatched: Array<Record<string, unknown>> = []
+      console.log(`Dispatch mode requested. selectedVinculados=${JSON.stringify(selectedVinculados)}`)
+      if (!selectedVinculados || selectedVinculados.length === 0) {
+        return res.status(400).json({ message: 'Debe seleccionar al menos una cartera para enviar' })
+      }
+
+      const filtered = summaries.filter(s => selectedVinculados.includes(s.vinculado))
       let sentCount = 0
       let skippedCount = 0
+      const dispatched: BulkSummary[] = []
+      const failures: Array<{ vinculado: number; phone: string; message: string }> = []
 
-      for (const summary of eligibleSummaries) {
-        if (!summary.phone) {
+      for (const summary of filtered) {
+        console.log(`Dispatch candidate ${summary.vinculado}: phone=${summary.phone}, valid=${summary.isValidForDispatch}, reason=${summary.validationReason}`)
+        if (!summary.isValidForDispatch || !summary.phone) {
           skippedCount += 1
-          dispatched.push({ vinculado: summary.vinculado, sent: false, reason: 'Sin teléfono' })
+          failures.push({
+            vinculado: summary.vinculado,
+            phone: summary.phone || 'N/D',
+            message: summary.validationReason || 'No válido para envío',
+          })
           continue
         }
 
         try {
           await sendWhatsAppText(summary.phone, buildBulkMessage(summary))
           sentCount += 1
-          dispatched.push({ vinculado: summary.vinculado, sent: true, phone: summary.phone })
+          dispatched.push(summary)
         } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          console.error(`Error enviando WhatsApp a ${summary.phone}:`, errorMessage)
           skippedCount += 1
-          dispatched.push({ vinculado: summary.vinculado, sent: false, reason: 'No se pudo enviar' })
+          failures.push({
+            vinculado: summary.vinculado,
+            phone: summary.phone,
+            message: errorMessage,
+          })
         }
       }
 
-      return res.status(200).json({
-        bulk: true,
-        mode: 'dispatch',
-        cartera: eligibleSummaries,
-        totalCarteras: vinculados.length,
-        limit,
-        selectedVinculados: requestedVinculados,
-        sentCount,
-        skippedCount,
-        dispatched,
-      })
+      return res.status(200).json({ cartera: filtered, bulk: true, sentCount, skippedCount, dispatched, failures })
     }
 
-    return res.status(200).json({
-      bulk: true,
-      mode: 'report',
-      cartera: summaries,
-      totalCarteras: vinculados.length,
-      limit,
-      selectedVinculados: requestedVinculados,
-    })
+    // Si se seleccionan vinculados específicos solo para consulta
+    if (selectedVinculados && selectedVinculados.length > 0) {
+      const filtered = summaries.filter(s => selectedVinculados.includes(s.vinculado))
+      return res.status(200).json({ cartera: filtered, bulk: true })
+    }
+
+    // Devolver límite de carteras
+    const limited = summaries.slice(0, limit)
+    return res.status(200).json({ cartera: limited, bulk: true })
   } catch (error) {
-    const enhancedError = error as Error & { connectionClosed?: boolean };
-    if (enhancedError.connectionClosed) {
-      connectionClosedByTimeout = true;
-    }
-    console.error(`[${requestId}] Error en getReportMngrWsp:`, error);
-    res.status(500).json({ message: 'Internal server error', error: (error as Error).message });
-  } finally {
-    if (connection && !connectionClosedByTimeout) {
-      try {
-        await connection.close();
-        console.log(`[${requestId}] Conexión cerrada normalmente`);
-      } catch (closeError) {
-        console.error(`[${requestId}] Error closing connection:`, closeError);
-      }
-    }
+    console.error('Error en getReportMngrWsp:', error)
+    return res.status(500).json({ message: 'Error al procesar carteras', error: (error as Error).message })
   }
+}
+
+export const getDetalladoWsp = async (req: Request, res: Response) => {
+  const { empresa, abs } = req.query;
+
+  if (!empresa || !abs) {
+    res.status(400).json({ message: 'Missing parameters' });
+    return
+  }
+
+  try {
+    const results = await CarteraDataServices(empresa as string, abs === 'true');
+
+    const mapped = await Promise.all(results.map(async (item: any) => {
+      const vendedor = item.Seller || {};
+      const documento = vendedor.DOCUMENTO || null;
+      const ccosto = vendedor.CCOSTO || null;
+
+      const contact = await Ifocontacto.findOne({ where: { DOCUMENTO: documento || String(item.VINCULADO) } });
+      const phone = normalizePhone(contact?.CELULAR || contact?.TELEFONO || undefined);
+
+      const validation = getDispatchValidation({ documento, ccosto, phone });
+
+      return {
+        vinculado: Number(item.VINCULADO) || 0,
+        documento: documento || String(item.VINCULADO),
+        sellerName: vendedor.NOMBRES || null,
+        cargo: vendedor.NOMBRECARGO || null,
+        empresa: vendedor.CCOSTO || null,
+        saldoInicial: Number(item.SALDO_ANT || 0),
+        base: Number(item.Basis?.BASE || 0),
+        ingresos: Number(item.DEBITO || 0),
+        egresos: Number(item.CREDITO || 0),
+        abonos: 0,
+        saldoFinal: Number(item.NUEVOSALDO || 0),
+        cartera: [],
+        phone,
+        hasContact: validation.isValidForDispatch,
+        isValidForDispatch: validation.isValidForDispatch,
+        validationReason: validation.validationReason,
+        ccosto: ccosto || null
+      }
+    }))
+
+    res.status(200).json({ cartera: mapped, totalCarteras: mapped.length })
+  } catch (error) {
+    console.error('Error in getDetalladoWsp', error)
+    res.status(500).json({ message: 'Internal server error', error })
+  }
+}
+
+interface BulkSummary {
+  vinculado: number
+  empresa: string
+  nombres: string
+  documento: string
+  ccosto: string
+  cargo: string
+  cartera: number
+  saldoInicial: number
+  ingresos?: number
+  egresos?: number
+  abonos?: number
+  saldoFinal?: number
+  sellerName: string
+  phone: string
+  hasContact: boolean
+  isValidForDispatch: boolean
+  validationReason: string | null
+  base: number
+  base_id?: number
 }

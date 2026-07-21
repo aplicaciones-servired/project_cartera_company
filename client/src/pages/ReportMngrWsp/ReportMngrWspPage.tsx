@@ -1,17 +1,15 @@
-import { FormEvent, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 import { toast } from 'sonner'
 import { API_URL } from '../../utils/contanst'
 import { BulkSummary, ReportResponse } from './types'
-import { ContactDialog, PhoneDialog, QuickSelectionPanel, ReportHeader, ReportTable, SearchForm, SelectionChips, SellerInfoCard } from './ReportMngrWspComponents'
+import { ContactDialog, PhoneDialog, QuickSelectionPanel, ReportHeader, ReportTable, SelectionChips, SellerInfoCard } from './ReportMngrWspComponents'
 
 export default function ReportMngrWspPage () {
   const [data, setData] = useState<ReportResponse | null>(null)
-  const [documento, setDocumento] = useState<string>('')
-  const [fecha1, setFecha1] = useState<string>('')
-  const [fecha2, setFecha2] = useState<string>('')
-  const [limit, setLimit] = useState<string>('20')
-  const [loading, setLoading] = useState<boolean>(false)
+  // const [documento, setDocumento] = useState<string>('')
+  const [limit] = useState<string>('20')
+  const [loading] = useState<boolean>(false)
   const [dispatching, setDispatching] = useState<boolean>(false)
   const [selectedVinculados, setSelectedVinculados] = useState<number[]>([])
   const [companyFilter, setCompanyFilter] = useState<'all' | 'servired' | 'multired'>('all')
@@ -31,13 +29,18 @@ export default function ReportMngrWspPage () {
 
   const bulkSummaries = (data?.cartera || []) as BulkSummary[]
   const getCompanyGroup = (item: BulkSummary) => {
+    console.log('[getCompanyGroup] empresa=', item.empresa, 'ccosto=', item.ccosto)
     const ccosto = String(item.ccosto || '').trim()
     if (ccosto === '39632') return 'servired'
     if (['39629', '39630', '39631'].includes(ccosto)) return 'multired'
 
-    const empresa = String(item.empresa || '').trim().toLowerCase()
-    if (empresa.includes('servired') || empresa.includes('jamund')) return 'servired'
-    if (empresa.includes('multired') || ['yumbo', 'vijes', 'la cumbre'].includes(empresa)) return 'multired'
+    const empresaRaw = String(item.empresa || '').trim().toLowerCase()
+    // Manejar códigos numéricos de empresa (101 -> Servired, 102 -> Multired)
+    if (empresaRaw === '101' || empresaRaw.includes('101')) return 'servired'
+    if (empresaRaw === '102' || empresaRaw.includes('102')) return 'multired'
+
+    if (empresaRaw.includes('servired') || empresaRaw.includes('jamund')) return 'servired'
+    if (empresaRaw.includes('multired') || ['yumbo', 'vijes', 'la cumbre'].some(n => empresaRaw.includes(n))) return 'multired'
 
     return 'other'
   }
@@ -49,61 +52,11 @@ export default function ReportMngrWspPage () {
     return true
   })
 
-  const withPhoneCount = bulkSummaries.filter(item => item.isValidForDispatch).length
-  const withoutPhoneCount = bulkSummaries.length - withPhoneCount
-
-  const handleSubmit = async (ev: FormEvent) => {
-    ev.preventDefault()
-
-    if (!fecha1 || !fecha2) {
-      toast.error('Debe seleccionar las fechas inicial y final')
-      return
-    }
-
-    if (documento && !documento.match(/^[0-9]+$/)) {
-      toast.error('El documento debe tener solo números', { description: 'Verificar documento' })
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const searchVinculado = documento ? Number(documento) : undefined
-      const nextSelectedVinculados = documento && searchVinculado
-        ? Array.from(new Set([...selectedVinculados, searchVinculado]))
-        : selectedVinculados
-
-      const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
-        fecha1,
-        fecha2,
-        limit: Number(limit || 20),
-        mode: 'report',
-        ...(searchVinculado ? { selectedVinculados: nextSelectedVinculados } : {})
-      }, { timeout: 180000 })
-
-      setData(response.data)
-      if (searchVinculado) {
-        setSelectedVinculados(nextSelectedVinculados)
-      }
-      if (response.data?.bulk) {
-        toast.success(`Se consultaron ${response.data.cartera?.length || 0} carteras`)
-      } else {
-        toast.success('Cartera consultada correctamente')
-      }
-    } catch (error) {
-      console.error(error)
-      toast.error('No fue posible consultar la cartera')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const positiveFilteredSummaries = filteredSummaries.filter(item => Number(item.saldoInicial || 0) > 0)
+  const [displayedSummaries, setDisplayedSummaries] = useState<BulkSummary[]>([])
+  const [loadingDetallado, setLoadingDetallado] = useState<boolean>(false)
 
   const handleDispatch = async () => {
-    if (!data?.bulk) {
-      toast.error('Primero debe consultar una carga masiva')
-      return
-    }
-
     if (selectedVinculados.length === 0) {
       toast.error('Debe seleccionar al menos una cartera para enviar')
       return
@@ -113,19 +66,28 @@ export default function ReportMngrWspPage () {
 
     try {
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
-        fecha1,
-        fecha2,
         limit: Number(limit || 20),
         selectedVinculados,
         mode: 'dispatch'
       }, { timeout: 180000 })
 
+      console.log('dispatch response', response.data)
       setData(response.data)
       const sent = response.data?.sentCount || 0
       const skipped = response.data?.skippedCount || 0
+      const failures = response.data?.failures || []
+
+      if (failures.length > 0) {
+        const failureText = failures
+          .map((failure: { phone?: string; message?: string }) => `Error enviando WhatsApp a ${failure.phone || 'N/D'}: ${failure.message || 'Error desconocido'}`)
+          .join('\n')
+
+        toast.error(failureText, { duration: 10000 })
+      }
+
       toast.success(`Envíos completados: ${sent} enviados, ${skipped} sin teléfono`)
     } catch (error) {
-      console.error(error)
+      console.error('dispatch error', error)
       toast.error('No fue posible enviar las carteras por WhatsApp')
     } finally {
       setDispatching(false)
@@ -144,7 +106,7 @@ export default function ReportMngrWspPage () {
   }
 
   const toggleSelectAll = () => {
-    const allIds = filteredSummaries.map(item => item.vinculado)
+    const allIds = displayedSource.map(item => item.vinculado)
     const allSelected = allIds.length > 0 && allIds.every(id => selectedVinculados.includes(id))
     setSelectedVinculados(allSelected ? [] : allIds)
   }
@@ -207,6 +169,16 @@ export default function ReportMngrWspPage () {
             })
           }
         })
+
+        // actualizar listado mostrado (detallado)
+        setDisplayedSummaries(prev => prev.map(s => {
+          const sDocumento = String(s.documento || '')
+          const sVinc = String(s.vinculado || '')
+          if (sDocumento === phoneUpdateDocumento || sVinc === phoneUpdateDocumento) {
+            return { ...s, phone: displayedPhone }
+          }
+          return s
+        }))
       }
     } catch (error) {
       console.error(error)
@@ -264,6 +236,16 @@ export default function ReportMngrWspPage () {
             })
           }
         })
+
+        // actualizar listado mostrado (detallado)
+        setDisplayedSummaries(prev => prev.map(s => {
+          const sDocumento = String(s.documento || '')
+          const sVinc = String(s.vinculado || '')
+          if (sDocumento === contactFormDocumento || sVinc === contactFormDocumento) {
+            return { ...s, phone: displayedPhone }
+          }
+          return s
+        }))
       }
     } catch (error) {
       console.error(error)
@@ -279,7 +261,8 @@ export default function ReportMngrWspPage () {
       return
     }
 
-    const match = bulkSummaries.find((item) => String(item.documento) === quickDocument)
+    const match = displayedSummaries.filter(item => Number(item.saldoInicial || 0) > 0)
+      .find((item) => String(item.documento) === quickDocument)
     if (!match) {
       toast.error('No se encontró esa cédula en la tabla actual')
       return
@@ -293,33 +276,95 @@ export default function ReportMngrWspPage () {
     }
   }
 
+  useEffect(() => {
+    // cargar detallado desde nuevo endpoint cada vez que cambie el filtro de empresa
+    const load = async () => {
+      try {
+        setLoadingDetallado(true)
+        const empresaParam = companyFilter === 'servired' ? '101' : companyFilter === 'multired' ? '102' : '0'
+        const resp = await axios.get(`${API_URL}/carteraDetalladoWsp?empresa=${empresaParam}&abs=false`)
+        setDisplayedSummaries(resp.data?.cartera || [])
+      } catch (err) {
+        console.error('Error cargando detallado WSP', err)
+      } finally {
+        setLoadingDetallado(false)
+      }
+    }
+
+    load().catch(err => console.error('load error', err))
+  }, [companyFilter])
+
   const selectedVinculadoSet = useMemo(() => new Set(selectedVinculados), [selectedVinculados])
   const saldoInicial = Number(data?.CarteraInicial?.SALDO_ANT || 0)
+  const positiveDisplayedSummaries = displayedSummaries.filter(item => Number(item.saldoInicial || 0) > 0)
+
+  // prepare displayed summaries: prefer backend bulk, otherwise use detallado fetched
+  const displayedSource = data?.bulk ? positiveFilteredSummaries : positiveDisplayedSummaries
+  const displayedWithPhoneCount = displayedSource.filter(x => x.isValidForDispatch).length
+  const displayedWithoutPhoneCount = displayedSource.length - displayedWithPhoneCount
 
   return (
     <>
-      <SearchForm
-        fecha1={fecha1}
-        fecha2={fecha2}
-        limit={limit}
-        documento={documento}
-        loading={loading}
-        setFecha1={setFecha1}
-        setFecha2={setFecha2}
-        setLimit={setLimit}
-        setDocumento={setDocumento}
-        onSubmit={handleSubmit}
-      />
+      {/* <div className='mb-4'>
+        <div className='rounded-3xl border border-slate-200 bg-slate-50 p-5 shadow-sm'>
+          <div className='flex items-center justify-between gap-4'>
+            <div className='flex-1'>
+              <div className='text-sm text-slate-500'>Resultados (consulta Detallado)</div>
+              <div className='text-2xl font-semibold mt-1'>{displayedSource.length}</div>
+            </div>
+            <div className='flex items-center gap-3'>
+              <input
+                type='text'
+                placeholder='Buscar por cédula'
+                value={documento}
+                onChange={(e) => setDocumento(e.target.value)}
+                className='rounded-md border px-3 py-2'
+              />
+              <button className='rounded-md bg-blue-600 px-4 py-2 text-white' onClick={() => {
+                if (!documento) {
+                  // recargar todo
+                  (async () => {
+                    try {
+                      setLoadingDetallado(true)
+                      const empresaParam = companyFilter === 'servired' ? '101' : companyFilter === 'multired' ? '102' : '0'
+                      const resp = await axios.get(`${API_URL}/carteraDetalladoWsp?empresa=${empresaParam}&abs=false`)
+                      setDisplayedSummaries(resp.data?.cartera || [])
+                    } catch (err) {
+                      console.error('Error recargando detallado', err)
+                    } finally {
+                      setLoadingDetallado(false)
+                    }
+                  })().catch(err => console.error(err))
+                } else {
+                  // buscar localmente por cédula
+                  const match = displayedSummaries.find(s => String(s.documento) === documento || String(s.vinculado) === documento)
+                  if (match) {
+                    if (!selectedVinculados.includes(match.vinculado)) setSelectedVinculados(prev => [...prev, match.vinculado])
+                    toast.success(`Se agregó la cartera ${match.vinculado} a la selección`)
+                  } else {
+                    toast.error('No se encontró esa cédula en el detallado cargado')
+                  }
+                }
+              }}>
+                Buscar cédula
+              </button>
+            </div>
+            <div className='text-sm text-slate-500'>
+              {loadingDetallado ? 'Cargando...' : 'Última consulta automática'}
+            </div>
+          </div>
+        </div>
+      </div> */}
 
       <ReportHeader
-        bulkActive={Boolean(data?.bulk)}
-        totalCount={bulkSummaries.length}
-        withPhoneCount={withPhoneCount}
-        withoutPhoneCount={withoutPhoneCount}
+        bulkActive={displayedSource.length > 0}
+        totalCount={displayedSource.length}
+        withPhoneCount={displayedWithPhoneCount}
+        withoutPhoneCount={displayedWithoutPhoneCount}
         companyFilter={companyFilter}
         setCompanyFilter={setCompanyFilter}
         selectedVinculadosLength={selectedVinculados.length}
-        filteredSummariesLength={filteredSummaries.length}
+        filteredSummariesLength={displayedSource.length}
         toggleSelectAll={toggleSelectAll}
         handleDispatch={handleDispatch}
         dispatching={dispatching}
@@ -369,17 +414,17 @@ export default function ReportMngrWspPage () {
 
       <ReportTable
         data={data}
-        filteredSummaries={filteredSummaries}
+        filteredSummaries={displayedSource}
         selectedVinculadoSet={selectedVinculadoSet}
         selectedVinculados={selectedVinculados}
         toggleSelectAll={toggleSelectAll}
         toggleVinculadoSelection={toggleVinculadoSelection}
         openPhoneUpdateDialog={openPhoneUpdateDialog}
-        withPhoneCount={withPhoneCount}
-        withoutPhoneCount={withoutPhoneCount}
+        withPhoneCount={displayedWithPhoneCount}
+        withoutPhoneCount={displayedWithoutPhoneCount}
       />
 
-      {loading && (
+      {(loadingDetallado || loading) && (
         <div className='absolute top-36 right-48 left-48 z-30 flex flex-col items-center justify-center'>
           <div className='w-96 rounded-md flex flex-col shadow-lg items-center justify-center gap-4 py-4 px-6 z-30 bg-yellow-300 animate-pulse'>
             <span className='text-lg font-semibold text-gray-800'>Solicitando información ...</span>
