@@ -784,24 +784,54 @@ export const getDetalladoWsp = async (req: Request, res: Response) => {
   }
 };
 
-interface BulkSummary {
+type BulkSummary = {
   vinculado: number;
-  empresa: string;
+  empresa: string | null;
   nombres: string;
   documento: string;
-  ccosto: string;
-  cargo: string;
+  ccosto: string | null;
+  cargo: string | null;
   cartera: number;
   saldoInicial: number;
   ingresos?: number;
   egresos?: number;
   abonos?: number;
   saldoFinal?: number;
-  sellerName: string;
-  phone: string;
+  sellerName: string | null;
+  phone?: string | null;
   hasContact: boolean;
   isValidForDispatch: boolean;
   validationReason: string | null;
   base: number;
   base_id?: number;
-}
+} & Partial<Record<
+  | 'Nombres'
+  | 'Cargo'
+  | 'Base'
+  | 'Raspe'
+  | 'SaldoAnt'
+  | 'Debito'
+  | 'Credito'
+  | 'NuevoSaldo'
+  | 'Cartera'
+  | 'Rechazados'
+  | 'Aceptados'
+  | 'PendientesCont'
+  | 'Digitados'
+  | 'Vtabnet'
+  | 'CuadreWeb'
+  | 'Anulados'
+  | 'BASE'
+  | 'SALDO_ANT'
+  | 'DEBITO'
+  | 'CREDITO'
+  | 'NUEVOSALDO'
+  | 'CARTERA'
+  | 'RECHAZADOS'
+  | 'ACEPTADOS'
+  | 'PENDIENTES_CONT'
+  | 'VTABNET'
+  | 'CUADRE_WEB'
+  | 'ANULADOS',
+  number | string | null
+>>;
