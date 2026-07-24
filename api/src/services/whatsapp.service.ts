@@ -193,20 +193,26 @@ const normalizePhone = (phone: string): string => {
     return ''
   }
 
-  if (digits.startsWith('57') && digits.length > 2) {
-    return digits.slice(2)
-  }
-
-  if (digits.startsWith('0') && digits.length === 10) {
-    return digits.slice(1)
-  }
-
-  if (digits.length === 10) {
+  // En WhatsApp Web se usa el número en formato internacional sin '+'
+  // para Colombia el ejemplo correcto es 573234150331.
+  if (digits.startsWith('57') && digits.length === 12) {
     return digits
   }
 
+  if (digits.startsWith('0') && digits.length === 10) {
+    return `57${digits.slice(1)}`
+  }
+
+  if (digits.length === 10) {
+    return `57${digits}`
+  }
+
   if (digits.length === 11 && digits.startsWith('3')) {
-    return digits.slice(1)
+    return `57${digits.slice(1)}`
+  }
+
+  if (digits.length === 12 && digits.startsWith('57')) {
+    return digits
   }
 
   return digits
