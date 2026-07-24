@@ -241,6 +241,7 @@ export const sendWhatsAppText = async (phone: string, message: string): Promise<
     throw new Error('El teléfono es obligatorio')
   }
 
+  console.log(`[WhatsApp] Número normalizado antes de getNumberId: ${normalizedPhone}`)
   const numberId = await whatsappClient.getNumberId(normalizedPhone)
   if (!numberId) {
     throw new Error(`El número ${normalizedPhone} no está registrado en WhatsApp`)
