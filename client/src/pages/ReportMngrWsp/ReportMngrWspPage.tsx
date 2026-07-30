@@ -109,10 +109,20 @@ export default function ReportMngrWspPage () {
     setDispatching(true)
 
     try {
+      const selectedPhones = selectedVinculados.map(id => {
+        const item = displayedSource.find(item => Number(item.vinculado || 0) === id)
+        return {
+          vinculado: id,
+          documento: String(item?.documento || ''),
+          phone: String(item?.phone || '')
+        }
+      }).filter(p => p.phone)
+
       const response = await axios.post(`${API_URL}/carteraMngrWsp`, {
         limit: Number(limit || 20),
         selectedVinculados,
-        mode: 'dispatch'
+        mode: 'dispatch',
+        phones: selectedPhones
       }, { timeout: 180000 })
 
       console.log('dispatch response', response.data)
