@@ -1,5 +1,6 @@
 import path from 'path'
 import { rm } from 'fs/promises'
+import { createLogRecord, markLogAsReceived, markLogAsSentById } from '../controllers/log_gestion_cartera.controller'
 
 type WhatsAppModule = {
   Client: new (options: any) => any
@@ -130,6 +131,22 @@ const ensureStarted = async (): Promise<any> => {
       console.log('[WhatsApp] Cliente listo')
     })
 
+    // Manejar acuses de recibo y actualizar logs cuando sea posible
+    client.on('message_ack', async (message: any, ack: number) => {
+      try {
+        // ack >= 2 => entregado/recibido en muchos casos
+        if (ack >= 2) {
+          const apiId = message?.id?._serialized || message?.id
+          if (apiId) {
+            await markLogAsReceived(apiId)
+            console.log('[WhatsApp] Log actualizado a RECIBIDO para', apiId)
+          }
+        }
+      } catch (err) {
+        console.warn('[WhatsApp] Error actualizando ack en log:', (err as Error).message)
+      }
+    })
+
     client.on('auth_failure', (message: string) => {
       currentState = 'error'
       lastError = message
@@ -232,7 +249,7 @@ export const getWhatsAppStatus = async (): Promise<{
   }
 }
 
-export const sendWhatsAppText = async (phone: string, message: string): Promise<void> => {
+export const sendWhatsAppText = async (phone: string, message: string, opts?: { preLogId?: number }): Promise<void> => {
   const whatsappClient = await ensureStarted()
   await waitForWhatsAppReady()
   const normalizedPhone = normalizePhone(phone)
@@ -257,8 +274,31 @@ export const sendWhatsAppText = async (phone: string, message: string): Promise<
     throw new Error('Cliente de WhatsApp no está disponible')
   }
 
-  await whatsappClient.sendMessage(chatId, message)
+  const sentMessage = await whatsappClient.sendMessage(chatId, message)
   console.log(`[WhatsApp] Mensaje enviado a ${chatId}`)
+
+  // Si el caller creó previamente un log, actualizamos ese registro con el apiId
+  try {
+    const apiId = sentMessage?.id?._serialized || sentMessage?.id || null
+    if (opts && opts.preLogId) {
+      await markLogAsSentById(opts.preLogId, apiId)
+      console.log('[WhatsApp] Log pre-creado actualizado con API_ID', apiId)
+    } else {
+      // Registrar en la tabla LOG_GESTION_CARTERA un registro ENVIADO (compatibilidad)
+      await createLogRecord({
+        WHATSAPP: normalizedPhone,
+        MENSAJE_ENVIADO: message,
+        FECHA_HORA_ENVIO: new Date(),
+        ESTADO_ENVIO: 'ENVIADO',
+        API_MENSAJE_ID: apiId,
+        NUMERO_INTENTOS: 1,
+        USUARIO_ENVIO: 'BOT_CARTERA'
+      })
+      console.log('[WhatsApp] Registro ENVIADO creado en LOG_GESTION_CARTERA', apiId)
+    }
+  } catch (err) {
+    console.warn('[WhatsApp] No fue posible registrar ENVIADO en LOG_GESTION_CARTERA:', (err as Error).message)
+  }
 }
 
 export const resetWhatsAppSession = async (): Promise<{ message: string }> => {

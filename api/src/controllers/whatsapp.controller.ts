@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { z } from 'zod'
 import { getWhatsAppStatus, resetWhatsAppSession, sendWhatsAppText } from '../services/whatsapp.service'
+import { createLogRecord } from './log_gestion_cartera.controller'
 
 const sendSchema = z.object({
   phone: z.string().min(8),
@@ -28,7 +29,16 @@ export const sendWhatsAppMessage = async (req: Request, res: Response) => {
   }
 
   try {
-    await sendWhatsAppText(result.data.phone, result.data.message)
+    // Crear registro preliminar en LOG_GESTION_CARTERA
+    const pre = await createLogRecord({
+      WHATSAPP: result.data.phone,
+      MENSAJE_ENVIADO: result.data.message,
+      ESTADO_ENVIO: 'PENDIENTE',
+      NUMERO_INTENTOS: 1,
+      USUARIO_ENVIO: 'BOT_CARTERA'
+    })
+
+    await sendWhatsAppText(result.data.phone, result.data.message, { preLogId: (pre as any).ID })
     res.status(200).json({ message: 'Mensaje enviado correctamente' })
   } catch (error) {
     res.status(500).json({

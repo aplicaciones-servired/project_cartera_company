@@ -6,6 +6,7 @@ import { Request, Response } from "express";
 import { Bases, Cartera, Sellers } from "../model";
 import { Ifocontacto } from "../model/infocontacto";
 import { sendWhatsAppText } from "../services/whatsapp.service";
+import { createLogRecord } from "./log_gestion_cartera.controller";
 import { z } from "zod";
 import { Connection } from "oracledb";
 
@@ -23,6 +24,13 @@ const CCOSTO_LABELS: Record<string, string> = {
   "39630": "Vijes",
   "39631": "La Cumbre",
   "39632": "Jamundí",
+};
+
+const mapEmpresaName = (empresa: string | null | undefined): string | null => {
+  if (!empresa) return null;
+  if (empresa === '101') return 'Servired';
+  if (empresa === '102') return 'Multired';
+  return empresa;
 };
 
 type RowType = [
@@ -96,8 +104,14 @@ const findContactPhone = async (
   const contact = await Ifocontacto.findOne({
     where: { DOCUMENTO: normalizedDocumento },
   });
+  const rawPhone = contact?.CELULAR || contact?.TELEFONO || undefined;
+  const normalizedPhone = normalizePhone(rawPhone);
 
-  return normalizePhone(contact?.CELULAR || contact?.TELEFONO || undefined);
+  console.log(
+    `[findContactPhone] documento=${normalizedDocumento}, rawPhone=${rawPhone || 'null'}, normalizedPhone=${normalizedPhone || 'null'}, contactExists=${Boolean(contact)}`,
+  );
+
+  return normalizedPhone;
 };
 
 const buildBulkMessage = (summary: BulkSummary): string => {
@@ -444,6 +458,15 @@ const schemaWsp = z.object({
     .enum(["report", "dispatch", "upsert-contact"])
     .optional()
     .default("report"),
+  phones: z
+    .array(
+      z.object({
+        vinculado: z.union([z.string(), z.number()]).optional(),
+        documento: z.string().optional(),
+        phone: z.string().min(1),
+      })
+    )
+    .optional(),
 });
 
 export const getReportMngrWsp = async (req: Request, res: Response) => {
@@ -501,7 +524,7 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
     }
   }
 
-  const { vinculado, selectedVinculados, limit = 20 } = parsed.data;
+const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
 
   // Traer carteras positivas del día actual
   let summaries: BulkSummary[] = [];
@@ -553,7 +576,7 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
 
       summaries.push({
         vinculado: Number(cartera.VINCULADO),
-        empresa: cartera.EMPRESA,
+        empresa: mapEmpresaName(cartera.EMPRESA),
         nombres: cartera.Seller?.NOMBRES || "",
         documento: seller?.DOCUMENTO || cartera.Seller?.DOCUMENTO || "",
         cargo: cartera.Seller?.NOMBRECARGO || "",
@@ -604,6 +627,32 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
 
     summaries = Object.values(uniqueSummariesByVinculado);
 
+    if (phones && phones.length > 0) {
+      const phoneByVinculado = new Map<string, string>()
+      const phoneByDocumento = new Map<string, string>()
+      for (const entry of phones) {
+        const phone = normalizePhone(entry.phone)
+        if (!phone) continue
+        if (entry.vinculado !== undefined && entry.vinculado !== null) {
+          phoneByVinculado.set(String(entry.vinculado), phone)
+        }
+        if (entry.documento) {
+          phoneByDocumento.set(String(entry.documento).trim(), phone)
+        }
+      }
+
+      summaries = summaries.map(s => {
+        const byVinc = phoneByVinculado.get(String(s.vinculado))
+        const byDoc = String(s.documento || '').trim() ? phoneByDocumento.get(String(s.documento).trim()) : undefined
+        const picked = byVinc || byDoc
+        if (picked && picked !== s.phone) {
+          console.log(`[dispatch-phone] usando teléfono actualizado para vinculado=${s.vinculado} documento=${s.documento} phone=${picked}, oldPhone=${s.phone || 'N/D'}`)
+          return { ...s, phone: picked }
+        }
+        return s
+      })
+    }
+
     // Si se busca un documento específico
     if (vinculado) {
       const vinculadoInt = parseInt(vinculado, 10);
@@ -653,20 +702,50 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
 
       for (const summary of filtered) {
         console.log(
-          `Dispatch candidate ${summary.vinculado}: phone=${summary.phone}, valid=${summary.isValidForDispatch}, reason=${summary.validationReason}`,
+          `Dispatch candidate ${summary.vinculado}: phone=${summary.phone}, valid=${summary.isValidForDispatch}, reason=${summary.validationReason}, documento=${summary.documento}, ccosto=${summary.ccosto}`,
         );
         if (!summary.isValidForDispatch || !summary.phone) {
+          const reason = summary.validationReason || (summary.phone ? 'No válido para envío' : 'Sin teléfono en INFOCONTACTO');
+          console.warn(`Dispatch skip ${summary.vinculado}: ${reason}`)
           skippedCount += 1;
           failures.push({
             vinculado: summary.vinculado,
             phone: summary.phone || "N/D",
-            message: summary.validationReason || "No válido para envío",
+            message: reason,
           });
           continue;
         }
 
         try {
-          await sendWhatsAppText(summary.phone, buildBulkMessage(summary));
+          const messageToSend = buildBulkMessage(summary);
+
+          // Crear registro antes de enviar con todos los campos disponibles
+          const preLog = await createLogRecord({
+            EMPRESA: summary.empresa ?? null,
+            CEDULA: summary.documento ?? null,
+            NOMBRES: summary.nombres ?? summary.sellerName ?? null,
+            CARGO: summary.cargo ?? null,
+            BASE: String(summary.base ?? ""),
+            SALDO_ANT: (summary as any).SALDO_ANT ?? summary.saldoInicial ?? 0,
+            DEBITO: (summary as any).DEBITO ?? 0,
+            CREDITO: (summary as any).CREDITO ?? 0,
+            SALDO: (summary as any).Cartera ?? summary.cartera ?? 0,
+            CARTERA: (summary as any).Cartera ?? summary.cartera ?? 0,
+            RECHAZADOS: (summary as any).RECHAZADOS ?? 0,
+            ACEPTADOS: (summary as any).ACEPTADOS ?? 0,
+            PENDIENTE_CONTEO: (summary as any).PENDIENTE_CONT ?? 0,
+            VENTA_BNET: (summary as any).VTABNET ?? 0,
+            CUADRE_WEB: (summary as any).CUADRE_WEB ?? 0,
+            ANULADOS: (summary as any).ANULADOS ?? 0,
+            WHATSAPP: summary.phone ?? null,
+            MENSAJE_ENVIADO: messageToSend,
+            FECHA_HORA_ENVIO: new Date(),
+            ESTADO_ENVIO: 'PENDIENTE',
+            NUMERO_INTENTOS: 1,
+            USUARIO_ENVIO: 'BOT_CARTERA'
+          })
+
+          await sendWhatsAppText(summary.phone, messageToSend, { preLogId: (preLog as any).ID })
           sentCount += 1;
           dispatched.push(summary);
         } catch (error) {
