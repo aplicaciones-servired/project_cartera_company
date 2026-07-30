@@ -110,9 +110,9 @@ const buildBulkMessage = (summary: BulkSummary): string => {
 
   return [
     "Cartera Manager",
-    summary.sellerName ? `Asesora: ${summary.sellerName}` : "Asesora: N/D",
+    summary.sellerName ? `Buen día: ${summary.sellerName}` : "Asesora: N/D",
     `Vinculado: ${summary.vinculado}`,
-    `Cartera: ${Cartera.toLocaleString("es-CO")}`,
+    `Su saldo de cartera pendiente es de ${Cartera.toLocaleString("es-CO")}. Agradecemos gestionar el pago para mantener su cupo disponible.`,
     // `Base asignada: ${base.toLocaleString('es-CO')}`,
     // `Ingresos: ${ingresos.toLocaleString('es-CO')}`,
     // `Egresos: ${egresos.toLocaleString('es-CO')}`,
