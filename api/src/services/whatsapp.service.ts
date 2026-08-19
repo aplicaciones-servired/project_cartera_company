@@ -74,11 +74,15 @@ export const sendWhatsAppText = async (phone: string, message: string, opts?: { 
   }
 
   const url = `${WHATSAPP_API_URL}/${phoneNumberId}/messages`
+  const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'prueba_conexion'
   const payload = {
     messaging_product: 'whatsapp',
     to: normalizedPhone,
-    type: 'text',
-    text: { body: message },
+    type: 'template',
+    template: {
+      name: templateName,
+      language: { code: 'es' },
+    },
   }
 
   console.log(`[WhatsApp] POST ${url}`)
