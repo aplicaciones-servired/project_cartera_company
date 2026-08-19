@@ -1,207 +1,24 @@
-import path from 'path'
-import { rm } from 'fs/promises'
-import { createLogRecord, markLogAsReceived, markLogAsSentById } from '../controllers/log_gestion_cartera.controller'
+import { createLogRecord, markLogAsSentById } from '../controllers/log_gestion_cartera.controller'
 
-type WhatsAppModule = {
-  Client: new (options: any) => any
-  LocalAuth: new (options: any) => any
+const WHATSAPP_API_URL = 'https://graph.facebook.com/v26.0'
+
+const getPhoneNumbersId = (): string => {
+  const id = process.env.WHATSAPP_PHONE_NUMBER_ID
+  if (!id) {
+    throw new Error('WHATSAPP_PHONE_NUMBER_ID no está configurado en .env')
+  }
+  return id
 }
 
-const loadWhatsAppModule = (): WhatsAppModule => {
-  const candidatePaths = [
-    path.resolve(process.cwd(), '..', 'client', 'node_modules', 'whatsapp-web.js'),
-    'whatsapp-web.js',
-  ]
-
-  for (const modulePath of candidatePaths) {
-    try {
-      return require(modulePath) as WhatsAppModule
-    } catch {
-      // Try the next candidate.
-    }
+const getToken = (): string => {
+  const token = process.env.TOKEN_WHATSAPP
+  if (!token) {
+    throw new Error('TOKEN_WHATSAPP no está configurado en .env')
   }
-
-  throw new Error('No se pudo cargar whatsapp-web.js')
+  return token
 }
 
-const { Client, LocalAuth } = loadWhatsAppModule()
-
-type WhatsAppState = 'idle' | 'starting' | 'qr' | 'authenticated' | 'ready' | 'error'
-
-let client: any = null
-let startPromise: Promise<any> | null = null
-let readyPromise: Promise<void> | null = null
-let readyResolve: (() => void) | null = null
-let readyReject: ((error: Error) => void) | null = null
-let currentState: WhatsAppState = 'idle'
-let lastQrCode = ''
-let lastError = ''
-const authPath = path.resolve(process.cwd(), '.wwebjs_auth')
-
-const createReadyPromise = (): Promise<void> => {
-  if (!readyPromise) {
-    readyPromise = new Promise<void>((resolve, reject) => {
-      readyResolve = resolve
-      readyReject = reject
-    })
-    // Evitar unhandled rejection: marcamos el promise como manejado
-    // (seguirá rechazándose para quien lo `await`, pero Node no matará el proceso)
-    readyPromise.catch(() => {})
-  }
-
-  return readyPromise
-}
-
-const resolveReady = (): void => {
-  if (readyResolve) {
-    readyResolve()
-    readyResolve = null
-    readyReject = null
-    readyPromise = null
-  }
-}
-
-const rejectReady = (message: string): void => {
-  if (readyReject) {
-    readyReject(new Error(message))
-    readyResolve = null
-    readyReject = null
-    readyPromise = null
-  }
-}
-
-const createClient = (): any => {
-  return new Client({
-    authStrategy: new LocalAuth({
-      clientId: 'cartera-company',
-      dataPath: authPath,
-    }),
-    puppeteer: {
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    },
-  })
-}
-
-const destroyClient = async (): Promise<void> => {
-  if (client) {
-    try {
-      await client.destroy()
-    } catch {
-      // Ignore shutdown errors while resetting the session.
-    }
-  }
-
-  client = null
-  startPromise = null
-  readyPromise = null
-  readyResolve = null
-  readyReject = null
-  currentState = 'idle'
-  lastQrCode = ''
-  lastError = ''
-}
-
-const ensureStarted = async (): Promise<any> => {
-  if (client) {
-    return client
-  }
-
-  if (!startPromise) {
-    currentState = 'starting'
-    client = createClient()
-    createReadyPromise()
-
-    client.on('qr', (qr: string) => {
-      lastQrCode = qr
-      currentState = 'qr'
-    })
-
-    client.on('authenticated', () => {
-      currentState = 'authenticated'
-      lastError = ''
-      console.log('[WhatsApp] Cliente autenticado, esperando estado ready')
-    })
-
-    client.on('ready', () => {
-      currentState = 'ready'
-      lastQrCode = ''
-      lastError = ''
-      resolveReady()
-      console.log('[WhatsApp] Cliente listo')
-    })
-
-    // Manejar acuses de recibo y actualizar logs cuando sea posible
-    client.on('message_ack', async (message: any, ack: number) => {
-      try {
-        // ack >= 2 => entregado/recibido en muchos casos
-        if (ack >= 2) {
-          const apiId = message?.id?._serialized || message?.id
-          if (apiId) {
-            await markLogAsReceived(apiId)
-            console.log('[WhatsApp] Log actualizado a RECIBIDO para', apiId)
-          }
-        }
-      } catch (err) {
-        console.warn('[WhatsApp] Error actualizando ack en log:', (err as Error).message)
-      }
-    })
-
-    client.on('auth_failure', (message: string) => {
-      currentState = 'error'
-      lastError = message
-      rejectReady(message)
-      console.error('[WhatsApp] Falló la autenticación:', message)
-    })
-
-    client.on('disconnected', (reason: string) => {
-      currentState = 'error'
-      lastError = reason
-      console.warn('[WhatsApp] Cliente desconectado:', reason)
-      // Rechazamos la promesa de ready para desbloquear esperas, si existe
-      rejectReady(reason)
-
-      // Si se desconectó por LOGOUT, eliminamos la sesión y reiniciamos el cliente
-      if (reason === 'LOGOUT') {
-        destroyClient()
-          .then(() => rm(authPath, { recursive: true, force: true }))
-          .catch(() => undefined)
-          .then(() => {
-            // Intentamos reiniciar el cliente en background sin bloquear
-            ensureStarted().catch(() => undefined)
-          })
-      }
-    })
-
-    startPromise = client.initialize().then(() => client).catch((err: any) => {
-      currentState = 'error'
-      lastError = (err && err.message) ? err.message : String(err)
-      console.error('[WhatsApp] Error iniciando cliente:', lastError)
-      // Rechazamos la promesa de ready si existe (evita bloqueo de llamadas que esperan)
-      rejectReady(lastError)
-      return Promise.reject(err)
-    })
-  }
-
-  return startPromise
-}
-
-const waitForWhatsAppReady = async (): Promise<void> => {
-  if (currentState === 'ready') {
-    return
-  }
-
-  if (currentState === 'error') {
-    throw new Error(lastError || 'WhatsApp no pudo iniciar')
-  }
-
-  if (currentState === 'authenticated') {
-    await createReadyPromise()
-    return
-  }
-
-  await createReadyPromise()
-}
+export type WhatsAppState = 'ready' | 'error'
 
 const normalizePhone = (phone: string): string => {
   const digits = phone.replace(/\D/g, '')
@@ -210,8 +27,6 @@ const normalizePhone = (phone: string): string => {
     return ''
   }
 
-  // En WhatsApp Web se usa el número en formato internacional sin '+'
-  // para Colombia el ejemplo correcto es 573234150331.
   if (digits.startsWith('57') && digits.length === 12) {
     return digits
   }
@@ -240,51 +55,67 @@ export const getWhatsAppStatus = async (): Promise<{
   qr: string
   error: string
 }> => {
-  await ensureStarted()
-
-  return {
-    status: currentState,
-    qr: lastQrCode,
-    error: lastError,
+  try {
+    getToken()
+    getPhoneNumbersId()
+    return { status: 'ready', qr: '', error: '' }
+  } catch (err) {
+    return { status: 'error', qr: '', error: (err as Error).message }
   }
 }
 
 export const sendWhatsAppText = async (phone: string, message: string, opts?: { preLogId?: number }): Promise<void> => {
-  const whatsappClient = await ensureStarted()
-  await waitForWhatsAppReady()
+  const token = getToken()
+  const phoneNumberId = getPhoneNumbersId()
   const normalizedPhone = normalizePhone(phone)
 
   if (!normalizedPhone) {
     throw new Error('El teléfono es obligatorio')
   }
 
-  console.log(`[WhatsApp] Número normalizado antes de getNumberId: ${normalizedPhone}`)
-  const numberId = await whatsappClient.getNumberId(normalizedPhone)
-  if (!numberId) {
-    throw new Error(`El número ${normalizedPhone} no está registrado en WhatsApp`)
+  const url = `${WHATSAPP_API_URL}/${phoneNumberId}/messages`
+  const payload = {
+    messaging_product: 'whatsapp',
+    to: normalizedPhone,
+    type: 'text',
+    text: { body: message },
   }
 
-  const chatId = typeof numberId === 'string'
-    ? numberId
-    : (numberId as any)._serialized || `${normalizedPhone}@c.us`
+  console.log(`[WhatsApp] POST ${url}`)
+  console.log(`[WhatsApp] Payload: ${JSON.stringify(payload)}`)
 
-  console.log(`[WhatsApp] Enviando a ${chatId}`)
-
-  if (!whatsappClient || typeof whatsappClient.sendMessage !== 'function') {
-    throw new Error('Cliente de WhatsApp no está disponible')
-  }
-
-  const sentMessage = await whatsappClient.sendMessage(chatId, message)
-  console.log(`[WhatsApp] Mensaje enviado a ${chatId}`)
-
-  // Si el caller creó previamente un log, actualizamos ese registro con el apiId
+  let response: Response
   try {
-    const apiId = sentMessage?.id?._serialized || sentMessage?.id || null
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch (fetchErr) {
+    const detail = fetchErr instanceof Error ? fetchErr.message : String(fetchErr)
+    console.error(`[WhatsApp] Error de red en fetch: ${detail}`)
+    throw new Error(`Error de red al conectar con WhatsApp API: ${detail}`)
+  }
+
+  const data = await response.json()
+
+  if (!response.ok) {
+    const errorMsg = data?.error?.message || JSON.stringify(data)
+    console.error(`[WhatsApp] API respondió ${response.status}: ${errorMsg}`)
+    throw new Error(`WhatsApp API error (${response.status}): ${errorMsg}`)
+  }
+
+  const apiId = data?.messages?.[0]?.id || null
+  console.log(`[WhatsApp] Mensaje enviado a ${normalizedPhone}, API_ID: ${apiId}`)
+
+  try {
     if (opts && opts.preLogId) {
       await markLogAsSentById(opts.preLogId, apiId)
       console.log('[WhatsApp] Log pre-creado actualizado con API_ID', apiId)
     } else {
-      // Registrar en la tabla LOG_GESTION_CARTERA un registro ENVIADO (compatibilidad)
       await createLogRecord({
         WHATSAPP: normalizedPhone,
         MENSAJE_ENVIADO: message,
@@ -292,7 +123,7 @@ export const sendWhatsAppText = async (phone: string, message: string, opts?: { 
         ESTADO_ENVIO: 'ENVIADO',
         API_MENSAJE_ID: apiId,
         NUMERO_INTENTOS: 1,
-        USUARIO_ENVIO: 'BOT_CARTERA'
+        USUARIO_ENVIO: 'BOT_CARTERA',
       })
       console.log('[WhatsApp] Registro ENVIADO creado en LOG_GESTION_CARTERA', apiId)
     }
@@ -302,15 +133,5 @@ export const sendWhatsAppText = async (phone: string, message: string, opts?: { 
 }
 
 export const resetWhatsAppSession = async (): Promise<{ message: string }> => {
-  await destroyClient()
-
-  try {
-    await rm(authPath, { recursive: true, force: true })
-  } catch (error) {
-    console.warn('[WhatsApp] No se pudo borrar la sesión anterior:', (error as Error).message)
-  }
-
-  await ensureStarted()
-
-  return { message: 'Sesión de WhatsApp reiniciada' }
+  return { message: 'Con API oficial no hay sesión local que reiniciar' }
 }

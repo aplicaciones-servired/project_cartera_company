@@ -18,7 +18,6 @@
     "oracledb": "6.6.0",
     "sequelize": "^6.37.8",
     "typescript": "5.4.5",
-    "whatsapp-web.js": "^1.17.1",
     "zod": "^3.25.32"
   },
   "devDependencies": {

@@ -29,7 +29,7 @@ export const sendWhatsAppMessage = async (payload: WhatsAppSendPayload): Promise
 }
 
 export const getWhatsAppStatus = async (): Promise<{
-  status: 'idle' | 'starting' | 'qr' | 'authenticated' | 'ready' | 'error'
+  status: 'ready' | 'error'
   qr: string
   error: string
 }> => {
