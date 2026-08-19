@@ -140,7 +140,11 @@ export default function ReportMngrWspPage () {
         toast.error(failureText, { duration: 10000 })
       }
 
-      toast.success(`Envíos completados: ${sent} enviados, ${skipped} sin teléfono`)
+      if (sent > 0) {
+        toast.success(`Envíos completados: ${sent} enviados, ${skipped} sin teléfono`)
+      } else if (skipped > 0) {
+        toast.warning(`Ningún mensaje enviado. ${skipped} destinatarios con problemas`)
+      }
     } catch (error) {
       console.error('dispatch error', error)
       toast.error('No fue posible enviar las carteras por WhatsApp')
