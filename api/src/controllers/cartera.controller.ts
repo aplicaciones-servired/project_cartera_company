@@ -114,7 +114,7 @@ const findContactPhone = async (
   return normalizedPhone;
 };
 
-const VENCIMIENTO_DIAS = 5;
+const VENCIMIENTO_DIAS = 0;
 
 const formatFechaVencimiento = (): string => {
   const fecha = new Date();
