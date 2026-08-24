@@ -114,6 +114,18 @@ const findContactPhone = async (
   return normalizedPhone;
 };
 
+const VENCIMIENTO_DIAS = 5;
+
+const formatFechaVencimiento = (): string => {
+  const fecha = new Date();
+  fecha.setDate(fecha.getDate() + VENCIMIENTO_DIAS);
+  return new Intl.DateTimeFormat("es-CO", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(fecha);
+};
+
 const buildBulkMessage = (summary: BulkSummary): string => {
   const Cartera = Number(summary.cartera ?? 0);
   const base = Number(summary.base ?? 0);
@@ -748,9 +760,9 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
           await sendWhatsAppText(summary.phone, messageToSend, {
             preLogId: (preLog as any).ID,
             params: [
-              summary.sellerName || "Asesora",
-              String(summary.documento ?? ""),
-              Number(summary.cartera ?? 0).toLocaleString("es-CO"),
+              summary.sellerName?.trim() || "Asesora",
+              `$${Number(summary.cartera ?? 0).toLocaleString("es-CO")}`,
+              formatFechaVencimiento(),
             ],
           })
           sentCount += 1;
