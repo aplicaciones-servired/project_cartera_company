@@ -64,7 +64,11 @@ export const getWhatsAppStatus = async (): Promise<{
   }
 }
 
-export const sendWhatsAppText = async (phone: string, message: string, opts?: { preLogId?: number }): Promise<void> => {
+export type WhatsAppTemplateParams = {
+  params?: string[]
+}
+
+export const sendWhatsAppText = async (phone: string, message: string, opts?: { preLogId?: number } & WhatsAppTemplateParams): Promise<void> => {
   const token = getToken()
   const phoneNumberId = getPhoneNumbersId()
   const normalizedPhone = normalizePhone(phone)
@@ -75,14 +79,29 @@ export const sendWhatsAppText = async (phone: string, message: string, opts?: { 
 
   const url = `${WHATSAPP_API_URL}/${phoneNumberId}/messages`
   const templateName = process.env.WHATSAPP_TEMPLATE_NAME || 'prueba_conexion'
+  const template: {
+    name: string
+    language: { code: string }
+    components?: Array<{ type: string; parameters: Array<{ type: string; text: string }> }>
+  } = {
+    name: templateName,
+    language: { code: 'es' },
+  }
+
+  if (opts?.params && opts.params.length > 0) {
+    template.components = [
+      {
+        type: 'body',
+        parameters: opts.params.map((param) => ({ type: 'text', text: param })),
+      },
+    ]
+  }
+
   const payload = {
     messaging_product: 'whatsapp',
     to: normalizedPhone,
     type: 'template',
-    template: {
-      name: templateName,
-      language: { code: 'es' },
-    },
+    template,
   }
 
   console.log(`[WhatsApp] POST ${url}`)

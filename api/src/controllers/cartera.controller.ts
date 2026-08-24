@@ -745,7 +745,14 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
             USUARIO_ENVIO: 'BOT_CARTERA'
           })
 
-          await sendWhatsAppText(summary.phone, messageToSend, { preLogId: (preLog as any).ID })
+          await sendWhatsAppText(summary.phone, messageToSend, {
+            preLogId: (preLog as any).ID,
+            params: [
+              summary.sellerName || "Asesora",
+              String(summary.documento ?? ""),
+              Number(summary.cartera ?? 0).toLocaleString("es-CO"),
+            ],
+          })
           sentCount += 1;
           dispatched.push(summary);
         } catch (error) {

@@ -6,6 +6,7 @@ import { createLogRecord } from './log_gestion_cartera.controller'
 const sendSchema = z.object({
   phone: z.string().min(8),
   message: z.string().min(1),
+  params: z.array(z.string()).optional(),
 })
 
 export const getWhatsAppHealth = async (_req: Request, res: Response) => {
@@ -38,7 +39,10 @@ export const sendWhatsAppMessage = async (req: Request, res: Response) => {
       USUARIO_ENVIO: 'BOT_CARTERA'
     })
 
-    await sendWhatsAppText(result.data.phone, result.data.message, { preLogId: (pre as any).ID })
+    await sendWhatsAppText(result.data.phone, result.data.message, {
+      preLogId: (pre as any).ID,
+      params: result.data.params,
+    })
     res.status(200).json({ message: 'Mensaje enviado correctamente' })
   } catch (error) {
     res.status(500).json({
