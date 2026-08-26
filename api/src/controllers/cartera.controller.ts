@@ -126,26 +126,11 @@ const formatFechaVencimiento = (): string => {
   }).format(fecha);
 };
 
-const buildBulkMessage = (summary: BulkSummary): string => {
-  const Cartera = Number(summary.cartera ?? 0);
-  const base = Number(summary.base ?? 0);
-  const ingresos = Number(summary.ingresos ?? 0);
-  const egresos = Number(summary.egresos ?? 0);
-  const abonos = Number(summary.abonos ?? 0);
-  // const saldoFinal = Number(summary.saldoFinal ?? (saldoInicial - base - ingresos + egresos - abonos) ?? 0)
-
-  return [
-    "Cartera Manager",
-    summary.sellerName ? `Buen día: ${summary.sellerName}` : "Asesora: N/D",
-    `Vinculado: ${summary.vinculado}`,
-    `Su saldo de cartera pendiente es de ${Cartera.toLocaleString("es-CO")}. Agradecemos gestionar el pago para mantener su cupo disponible.`,
-    // `Base asignada: ${base.toLocaleString('es-CO')}`,
-    // `Ingresos: ${ingresos.toLocaleString('es-CO')}`,
-    // `Egresos: ${egresos.toLocaleString('es-CO')}`,
-    // `Abonos cartera: ${abonos.toLocaleString('es-CO')}`,
-    // `Saldo final cartera: ${saldoFinal.toLocaleString('es-CO')}`
-  ].join("\n");
-};
+const buildTemplateParams = (summary: BulkSummary): string[] => [
+  summary.sellerName?.trim() || "Asesora",
+  `$${Number(summary.cartera ?? 0).toLocaleString("es-CO")}`,
+  formatFechaVencimiento(),
+];
 
 const getDispatchValidation = ({
   documento,
@@ -493,17 +478,31 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
   if (mode === "upsert-contact") {
     const documento =
       typeof req.body?.documento === "string" ? req.body.documento.trim() : "";
-    const telefono =
+    const celularRaw =
+      typeof req.body?.celular === "string" ? req.body.celular.trim() : "";
+    const telefonoRaw =
       typeof req.body?.telefono === "string" ? req.body.telefono.trim() : "";
+    const email =
+      typeof req.body?.email === "string" ? req.body.email.trim() : null;
+    const docAlterno =
+      typeof req.body?.docAlterno === "string" ? req.body.docAlterno.trim() : null;
+    const nombreAlterno =
+      typeof req.body?.nombreAlterno === "string" ? req.body.nombreAlterno.trim() : null;
+    const celAlterno =
+      typeof req.body?.celAlterno === "string" ? req.body.celAlterno.trim() : null;
 
-    if (!documento || !telefono) {
+    const telefonoInput = celularRaw || telefonoRaw;
+
+    if (!documento || !telefonoInput) {
       return res
         .status(400)
         .json({ message: "Documento y teléfono son obligatorios" });
     }
 
     try {
-      const normalizedPhone = normalizePhone(telefono);
+      const normalizedCelular = normalizePhone(celularRaw || undefined);
+      const normalizedTelefono = normalizePhone(telefonoRaw || undefined);
+      const normalizedPhone = normalizedCelular || normalizedTelefono;
       if (!normalizedPhone) {
         return res.status(400).json({ message: "Teléfono inválido" });
       }
@@ -511,12 +510,12 @@ export const getReportMngrWsp = async (req: Request, res: Response) => {
       const [contact, created] = await Ifocontacto.upsert(
         {
           DOCUMENTO: documento,
-          CELULAR: normalizedPhone,
-          TELEFONO: normalizedPhone,
-          EMAIL: null,
-          DOCALTERNO: null,
-          NOMBREALTERNO: null,
-          CELALTERNO: null,
+          CELULAR: normalizedCelular || normalizedPhone,
+          TELEFONO: normalizedTelefono || normalizedPhone,
+          EMAIL: email || null,
+          DOCALTERNO: docAlterno || null,
+          NOMBREALTERNO: nombreAlterno || null,
+          CELALTERNO: celAlterno ? (normalizePhone(celAlterno) || null) : null,
           FECHACREATE: new Date(),
           FECHAUPDATE: new Date(),
           LOGINUPD: "WSP",
@@ -659,7 +658,12 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
         const picked = byVinc || byDoc
         if (picked && picked !== s.phone) {
           console.log(`[dispatch-phone] usando teléfono actualizado para vinculado=${s.vinculado} documento=${s.documento} phone=${picked}, oldPhone=${s.phone || 'N/D'}`)
-          return { ...s, phone: picked }
+          const revalidation = getDispatchValidation({
+            documento: s.documento,
+            ccosto: s.ccosto,
+            phone: picked,
+          });
+          return { ...s, phone: picked, isValidForDispatch: revalidation.isValidForDispatch, validationReason: revalidation.validationReason }
         }
         return s
       })
@@ -703,8 +707,25 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
       const filtered = summaries.filter((s) =>
         selectedVinculados.includes(s.vinculado),
       );
+
+      const sendable = filtered.filter(
+        (s) => s.phone && s.isValidForDispatch,
+      );
+      const missingContacts = filtered
+        .filter((s) => !s.phone || !s.isValidForDispatch)
+        .map((s) => ({
+          vinculado: s.vinculado,
+          documento: s.documento,
+          sellerName: s.sellerName,
+          empresa: s.empresa,
+          ccosto: s.ccosto,
+          cargo: s.cargo,
+          cartera: s.cartera,
+          validationReason: s.validationReason,
+        }));
+
       let sentCount = 0;
-      let skippedCount = 0;
+      let failedCount = 0;
       const dispatched: BulkSummary[] = [];
       const failures: Array<{
         vinculado: number;
@@ -712,24 +733,14 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
         message: string;
       }> = [];
 
-      for (const summary of filtered) {
+      for (const summary of sendable) {
         console.log(
-          `Dispatch candidate ${summary.vinculado}: phone=${summary.phone}, valid=${summary.isValidForDispatch}, reason=${summary.validationReason}, documento=${summary.documento}, ccosto=${summary.ccosto}`,
+          `Dispatch candidate ${summary.vinculado}: phone=${summary.phone}, valid=${summary.isValidForDispatch}, documento=${summary.documento}, ccosto=${summary.ccosto}`,
         );
-        if (!summary.isValidForDispatch || !summary.phone) {
-          const reason = summary.validationReason || (summary.phone ? 'No válido para envío' : 'Sin teléfono en INFOCONTACTO');
-          console.warn(`Dispatch skip ${summary.vinculado}: ${reason}`)
-          skippedCount += 1;
-          failures.push({
-            vinculado: summary.vinculado,
-            phone: summary.phone || "N/D",
-            message: reason,
-          });
-          continue;
-        }
 
         try {
-          const messageToSend = buildBulkMessage(summary);
+          const templateParams = buildTemplateParams(summary);
+          const messageToSend = `recordatorio_cartera | ${templateParams.join(" | ")}`;
 
           // Crear registro antes de enviar con todos los campos disponibles
           const preLog = await createLogRecord({
@@ -757,13 +768,9 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
             USUARIO_ENVIO: 'BOT_CARTERA'
           })
 
-          await sendWhatsAppText(summary.phone, messageToSend, {
+          await sendWhatsAppText(summary.phone!, messageToSend, {
             preLogId: (preLog as any).ID,
-            params: [
-              summary.sellerName?.trim() || "Asesora",
-              `$${Number(summary.cartera ?? 0).toLocaleString("es-CO")}`,
-              formatFechaVencimiento(),
-            ],
+            params: templateParams,
           })
           sentCount += 1;
           dispatched.push(summary);
@@ -774,10 +781,10 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
             `Error enviando WhatsApp a ${summary.phone}:`,
             errorMessage,
           );
-          skippedCount += 1;
+          failedCount += 1;
           failures.push({
             vinculado: summary.vinculado,
-            phone: summary.phone,
+            phone: summary.phone ?? "N/D",
             message: errorMessage,
           });
         }
@@ -786,11 +793,11 @@ const { vinculado, selectedVinculados, limit = 20, phones } = parsed.data;
       return res
         .status(200)
         .json({
-          cartera: filtered,
           bulk: true,
           sentCount,
-          skippedCount,
+          failedCount,
           dispatched,
+          missingContacts,
           failures,
         });
     }
