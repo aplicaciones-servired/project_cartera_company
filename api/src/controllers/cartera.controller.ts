@@ -229,7 +229,7 @@ const buildPortfolioSummary = async ({
       WHERE mcncuenta = '13459501'
       AND mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
       AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
-      AND mcnVincula = TO_CHAR(:documento)
+      AND mcnVincula = RPAD(TO_CHAR(:documento), 15)
       GROUP BY mcnfecha, mcncuenta, mcnEmpresa, mcnVincula
       ORDER BY mcnfecha`,
     { fecha1: frmDate1, fecha2: frmDate2, documento: vinculado },
@@ -394,7 +394,7 @@ export const getReportMngr = async (req: Request, res: Response) => {
       WHERE mcncuenta = '13459501'
       And mcnfecha between TO_DATE(:fecha1, 'DD-MM-YYYY') and TO_DATE(:fecha2, 'DD-MM-YYYY')
       AND (mcntpreg = 0 or mcntpreg = 1 or mcntpreg = 2 or mcntpreg > 6)
-      AND mcnVincula = TO_CHAR(:documento)
+      AND mcnVincula = RPAD(TO_CHAR(:documento), 15)
       GROUP BY mcnfecha, mcncuenta, mcnEmpresa, mcnVincula
       ORDER BY mcnfecha`,
       { fecha1: frmDate1, fecha2: frmDate2, documento: vinculado },
