@@ -4,9 +4,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# Instalar dependencias del sistema operativo ajustadas a Debian Bookworm / Trixie
+# Instalar dependencias del sistema operativo
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libaio1t64 \
+    libaio1 \
     libasound2 \
     libatk1.0-0 \
     libc6 \
