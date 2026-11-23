@@ -2,8 +2,14 @@ import { Aud_Bases } from '../model/aud_bases.model'
 import { Sellers } from '../model/sellers.model';
 import { Cartera } from '../model/cartera.model';
 import { Bases } from '../model/bases.model';
+import { CategoriasBases } from '../model/categorias_bases.model';
 import { Request, Response } from 'express';
 import { fn } from 'sequelize';
+import { z } from 'zod';
+
+const updateBaseCategoriaSchema = z.object({
+  EXCP2: z.coerce.number().int().min(0, 'Categoría inválida')
+});
 
 export const getAllBases = async (req: Request, res: Response) => {
   try {
@@ -160,5 +166,46 @@ export const crearBase = async (req: Request, res: Response) => {
   } catch (error) {
     console.log(error);
     return res.status(500).json(error)
+  }
+}
+
+export const updateBaseCategoria = async (req: Request, res: Response) => {
+  const vinculado = String(req.params.id ?? '').trim();
+  if (!vinculado) {
+    return res.status(400).json({ message: 'Vinculado inválido' });
+  }
+
+  const parsed = updateBaseCategoriaSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: parsed.error.issues[0]?.message || 'Categoría inválida'
+    });
+  }
+
+  const { EXCP2 } = parsed.data;
+
+  try {
+    if (EXCP2 > 0) {
+      const categoria = await CategoriasBases.findByPk(EXCP2);
+      if (!categoria) {
+        return res.status(404).json({ message: 'La categoría seleccionada no existe' });
+      }
+    }
+
+    const base = await Bases.findByPk(vinculado);
+    if (!base) {
+      return res.status(404).json({ message: 'Base no encontrada para el vinculado' });
+    }
+
+    await base.update({ EXCP2 });
+
+    return res.status(200).json({
+      message: 'Categoría actualizada correctamente',
+      VINCULADO: vinculado,
+      EXCP2
+    });
+  } catch (error) {
+    console.error('[Bases] Error en updateBaseCategoria:', error);
+    return res.status(500).json({ message: 'Error al actualizar la categoría de la base' });
   }
 }

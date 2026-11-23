@@ -10,6 +10,7 @@ const Detallado = lazy(() => import('../pages/Home'))
 const BasesPage = lazy(() => import('../pages/BasesPage'))
 const BasesDetalle = lazy(() => import('../pages/BasesDetalle'))
 const AsignarNewBase = lazy(() => import('../pages/AsignarNewBase'))
+const CategoriasPage = lazy(() => import('../pages/CategoriasPage'))
 const ReporteRecaudo = lazy(() => import('../pages/ReporteRecaudo'))
 const ReportOracle = lazy(() => import('../pages/ReportOracle'))
 const SeleccionReportes = lazy(() => import('../pages/SeleccionReportes'))
@@ -62,6 +63,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<Loading />}>
             <AsignarNewBase />
+          </Suspense>
+        )
+      },
+      {
+        path: 'categorias',
+        element: (
+          <Suspense fallback={<Loading />}>
+            <CategoriasPage />
           </Suspense>
         )
       },

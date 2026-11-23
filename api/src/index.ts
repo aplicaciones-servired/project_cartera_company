@@ -5,7 +5,7 @@ import helmet from 'helmet'
 import compression from 'compression'
 import rateLimit from 'express-rate-limit'
 
-import { BasesRouter, CarteraRouter, SellersRouter, recaudoRouter, whatsappRouter } from './routes'
+import { BasesRouter, CarteraRouter, CategoriasBasesRouter, SellersRouter, recaudoRouter, whatsappRouter } from './routes'
 import { routerResumen } from './routes/resumen.routes'
 import { CARTERA_FRONTEND, PORT, VERSION } from './config'
 import { conection } from './connections'
@@ -294,6 +294,7 @@ app.use(VERSION, CarteraRouter)
   .use(VERSION, routerResumen)
   .use(VERSION, recaudoRouter)
   .use(VERSION, whatsappRouter)
+  .use(VERSION, CategoriasBasesRouter)
 
 // ======== MANEJO DE ERRORES ========
 app.use(notFoundHandler)

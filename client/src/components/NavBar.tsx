@@ -9,6 +9,7 @@ const Links = [
   { link: '/', name: 'Inicio' },
   { link: '/detallado', name: 'Detallado' },
   { link: '/bases', name: 'Bases' },
+  { link: '/categorias', name: 'Categorías' },
   { link: '/Reportes', name: 'Reportes' },
   { link: '/ReportesWhatsApp', name: 'WhatsApp' }
 ]

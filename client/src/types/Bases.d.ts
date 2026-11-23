@@ -6,7 +6,7 @@ export interface BasesI {
   VINCULADO: string
   BASE: number
   RASPE: number
-  EXCP2: number
+  EXCP2: number | null
   EXCP3: number
   LOGIN: string
   OBSERVACION: string
