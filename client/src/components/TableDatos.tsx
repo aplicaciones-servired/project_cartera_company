@@ -21,6 +21,7 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
               <TableHeaderCell>Cargo</TableHeaderCell>
               <TableHeaderCell>Zona</TableHeaderCell>
               <TableHeaderCell>Base</TableHeaderCell>
+              <TableHeaderCell>Valor Recaudo</TableHeaderCell>
               <TableHeaderCell className='cursor-pointer hover:text-red-500' id={'SaldoAnt'} onClick={ev => funClick(ev)}>
                 Saldo Ant ...
               </TableHeaderCell >
@@ -36,7 +37,6 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
               <TableHeaderCell>Venta Bnet</TableHeaderCell>
               <TableHeaderCell>Cuadre Web</TableHeaderCell>
               <TableHeaderCell>Anulados</TableHeaderCell>
-              <TableHeaderCell>Valor Recaudo</TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -48,6 +48,9 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
                 <TableCell>{item.Cargo}</TableCell>
                 <TableCell>{item.Zona}</TableCell>
                 <TableCell>{formatValue(item.Base)}</TableCell>
+                <TableCell>
+                  {formatValue(item.ValorRecaudo ?? 0)}
+                </TableCell>
                 <TableCell className={`${item.SaldoAnt > 0
                   ? 'bg-punch-200 dark:bg-punch-950 text-gray-800 dark:text-gray-300'
                   : 'bg-green-200 dark:bg-green-950 text-gray-800 dark:text-gray-300'}`}>
@@ -90,9 +93,6 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
                 </TableCell>
                 <TableCell >
                   {formatValue(item.Anulados)}
-                </TableCell>
-                <TableCell>
-                  {formatValue(item.ValorRecaudo ?? 0)}
                 </TableCell>
               </TableRow>
             ))}
