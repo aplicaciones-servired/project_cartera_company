@@ -21,6 +21,8 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
               <TableHeaderCell>Cargo</TableHeaderCell>
               <TableHeaderCell>Categoría</TableHeaderCell>
               <TableHeaderCell>Zona</TableHeaderCell>
+              <TableHeaderCell>Domingueros</TableHeaderCell>
+              <TableHeaderCell>Quincenazos</TableHeaderCell>
               <TableHeaderCell>Base</TableHeaderCell>
               <TableHeaderCell>Valor Recaudo</TableHeaderCell>
               <TableHeaderCell className='cursor-pointer hover:text-red-500' id={'SaldoAnt'} onClick={ev => funClick(ev)}>
@@ -49,6 +51,8 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
                 <TableCell>{item.Cargo}</TableCell>
                 <TableCell>{item.Categoria || 'No tiene categoría'}</TableCell>
                 <TableCell>{item.Zona}</TableCell>
+                <TableCell>{formatValue(item.Domingueros ?? 0)}</TableCell>
+                <TableCell>{formatValue(item.Quincenazos ?? 0)}</TableCell>
                 <TableCell>{formatValue(item.Base)}</TableCell>
                 <TableCell>
                   {formatValue(item.ValorRecaudo ?? 0)}

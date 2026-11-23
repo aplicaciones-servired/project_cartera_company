@@ -8,6 +8,7 @@ class Bases extends Model<InferAttributes<Bases>,InferCreationAttributes<Bases>>
   declare RASPE: number;
   declare EXCP2: number;
   declare EXCP3: number;
+  declare CATEGORIA: number | null;
   declare LOGIN: string;
   declare OBSERVACION: string;
   declare VERSION: string;
@@ -19,6 +20,7 @@ Bases.init({
   RASPE: { type: DataTypes.INTEGER, allowNull: true },
   EXCP2: { type: DataTypes.INTEGER, allowNull: true },
   EXCP3: { type: DataTypes.INTEGER, allowNull: true },
+  CATEGORIA: { type: DataTypes.INTEGER, allowNull: true, defaultValue: 0 },
   LOGIN: { type: DataTypes.STRING, allowNull: true },
   OBSERVACION: { type: DataTypes.STRING, allowNull: true },
   VERSION: { type: DataTypes.STRING, allowNull: true },

@@ -36,7 +36,7 @@ export function mapCarteraResults(
   return results.map((item: any) => {
     const recaudoKey = buildRecaudoKey(item.EMPRESA, item.VINCULADO);
     const valorRecaudo = recaudoValoresMap?.get(recaudoKey) ?? 0;
-    const categoriaId = Number(item.Basis?.EXCP2 ?? 0);
+    const categoriaId = Number(item.Basis?.CATEGORIA ?? 0);
     const categoria = categoriaId > 0
       ? (categoriasMap?.get(categoriaId) || 'No tiene categoría')
       : 'No tiene categoría';
@@ -62,6 +62,8 @@ export function mapCarteraResults(
       CuadreWeb: item.VTASIISS,
       Anulados: item.VTA_S1,
       Zona: ReturnZona(item.Seller?.CCOSTO),
+      Domingueros: Number(item.Basis?.EXCP2 ?? 0) || 0,
+      Quincenazos: Number(item.Basis?.EXCP3 ?? 0) || 0,
       ValorRecaudo: valorRecaudo
     };
   });

@@ -7,7 +7,8 @@ export interface BasesI {
   BASE: number
   RASPE: number
   EXCP2: number | null
-  EXCP3: number
+  EXCP3: number | null
+  CATEGORIA: number | null
   LOGIN: string
   OBSERVACION: string
   VERSION: string

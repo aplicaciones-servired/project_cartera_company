@@ -6,14 +6,27 @@ import { useEffect, useState } from 'react'
 import { API_URL } from '../utils/contanst'
 import { BasesI } from '../types/Bases'
 import { CategoriaBase } from '../types/Categorias'
-import { getCategoriaErrorMessage, getCategorias, updateBaseCategoria } from '../services/categoriasService'
+import { getCategoriaErrorMessage, getCategorias, updateBaseCategoria, updateBaseExcepciones } from '../services/categoriasService'
 import { toast } from 'sonner'
 import axios from 'axios'
+
+const formatThousands = (value: number | null | undefined): string => {
+  const num = Number(value ?? 0)
+  if (!Number.isFinite(num) || num < 0) return '0'
+  return new Intl.NumberFormat('es-CO').format(Math.trunc(num))
+}
+
+const parseDigits = (raw: string): number => {
+  const digits = raw.replace(/\D/g, '')
+  return digits === '' ? 0 : Number(digits)
+}
 
 const BasesPage = () => {
   const [data, setData] = useState<BasesI[]>([])
   const [categorias, setCategorias] = useState<CategoriaBase[]>([])
   const [updatingIds, setUpdatingIds] = useState<Record<string, boolean>>({})
+  const [draftValues, setDraftValues] = useState<Record<string, string>>({})
+  const [updatingCells, setUpdatingCells] = useState<Record<string, boolean>>({})
   const [asc, setAsc] = useState<boolean>(true)
   const { user } = useAuth()
   const navigate = useNavigate()
@@ -32,11 +45,11 @@ const BasesPage = () => {
 
   const handleCategoriaChange = async (
     vinculadoValue: string,
-    currentExcp2: number | null,
+    currentCategoria: number | null,
     value: string
   ) => {
     const newCategoriaId = Number(value)
-    if (Number.isNaN(newCategoriaId) || newCategoriaId === Number(currentExcp2 ?? 0)) {
+    if (Number.isNaN(newCategoriaId) || newCategoriaId === Number(currentCategoria ?? 0)) {
       return
     }
 
@@ -45,7 +58,7 @@ const BasesPage = () => {
       await updateBaseCategoria(vinculadoValue, newCategoriaId)
       setData(prev =>
         prev.map(row =>
-          row.VINCULADO === vinculadoValue ? { ...row, EXCP2: newCategoriaId } : row
+          row.VINCULADO === vinculadoValue ? { ...row, CATEGORIA: newCategoriaId } : row
         )
       )
       toast.success('Categoría actualizada correctamente')
@@ -53,6 +66,58 @@ const BasesPage = () => {
       toast.error(getCategoriaErrorMessage(error, 'Error al actualizar la categoría'))
     } finally {
       setUpdatingIds(prev => ({ ...prev, [vinculadoValue]: false }))
+    }
+  }
+
+  const clearDraft = (key: string) => {
+    setDraftValues(prev => {
+      const next = { ...prev }
+      delete next[key]
+      return next
+    })
+  }
+
+  const handleExcepcionBlur = async (
+    vinculadoValue: string,
+    field: 'EXCP2' | 'EXCP3',
+    currentVal: number | null
+  ) => {
+    const key = `${vinculadoValue}-${field}`
+    if (!(key in draftValues)) {
+      return
+    }
+
+    const parsed = parseDigits(draftValues[key])
+    if (!Number.isInteger(parsed) || parsed < 0 || parsed > 2147483647) {
+      toast.error('Ingrese un valor entero válido')
+      clearDraft(key)
+      return
+    }
+
+    if (parsed === Number(currentVal ?? 0)) {
+      clearDraft(key)
+      return
+    }
+
+    setUpdatingCells(prev => ({ ...prev, [key]: true }))
+    try {
+      await updateBaseExcepciones(vinculadoValue, { [field]: parsed })
+      setData(prev =>
+        prev.map(row =>
+          row.VINCULADO === vinculadoValue ? { ...row, [field]: parsed } : row
+        )
+      )
+      clearDraft(key)
+      toast.success(
+        field === 'EXCP2'
+          ? 'Domingueros actualizado correctamente'
+          : 'Quincenazos actualizado correctamente'
+      )
+    } catch (error) {
+      clearDraft(key)
+      toast.error(getCategoriaErrorMessage(error, 'Error al actualizar el valor'))
+    } finally {
+      setUpdatingCells(prev => ({ ...prev, [key]: false }))
     }
   }
 
@@ -117,6 +182,8 @@ const BasesPage = () => {
                 Base Asignada ...
               </TableHeaderCell>
               <TableHeaderCell>Categorías</TableHeaderCell>
+              <TableHeaderCell>Domingueros</TableHeaderCell>
+              <TableHeaderCell>Quincenazos</TableHeaderCell>
               <TableHeaderCell>Opciones</TableHeaderCell>
             </TableRow>
           </TableHead>
@@ -135,9 +202,9 @@ const BasesPage = () => {
                   <SelectNative
                     className='w-48'
                     disabled={Boolean(updatingIds[item.VINCULADO])}
-                    value={categorias.some((cat) => cat.ID === Number(item.EXCP2)) ? String(item.EXCP2) : '0'}
+                    value={categorias.some((cat) => cat.ID === Number(item.CATEGORIA)) ? String(item.CATEGORIA) : '0'}
                     onChange={(e) => {
-                      handleCategoriaChange(item.VINCULADO, item.EXCP2, e.target.value).catch((err) => console.error(err))
+                      handleCategoriaChange(item.VINCULADO, item.CATEGORIA, e.target.value).catch((err) => console.error(err))
                     }}
                   >
                     <option value='0'>Sin categoría</option>
@@ -148,6 +215,41 @@ const BasesPage = () => {
                     ))}
                   </SelectNative>
                 </TableCell>
+                {(['EXCP2', 'EXCP3'] as const).map((field) => {
+                  const key = `${item.VINCULADO}-${field}`
+                  const savedVal = item[field]
+                  const displayVal = key in draftValues ? draftValues[key] : formatThousands(savedVal)
+                  return (
+                    <TableCell key={field}>
+                      <div className='relative w-36'>
+                        <span className='pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-gray-500 z-10'>
+                          $
+                        </span>
+                        <Input
+                          type='text'
+                          inputMode='numeric'
+                          className='w-36'
+                          inputClassName='pl-6 text-right'
+                          value={displayVal}
+                          disabled={Boolean(updatingCells[key])}
+                          onChange={(e) => {
+                            const digits = e.target.value.replace(/\D/g, '').slice(0, 10)
+                            const formatted = digits === '' ? '' : formatThousands(Number(digits))
+                            setDraftValues(prev => ({ ...prev, [key]: formatted }))
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.currentTarget.blur()
+                            }
+                          }}
+                          onBlur={() => {
+                            handleExcepcionBlur(item.VINCULADO, field, savedVal).catch((err) => console.error(err))
+                          }}
+                        />
+                      </div>
+                    </TableCell>
+                  )
+                })}
                 <TableCell>
                   {
                     user?.sub_process === 'cartera'

@@ -34,6 +34,8 @@ export interface MappedResult {
   Vtabnet: number;
   CuadreWeb: number;
   Anulados: number;
+  Domingueros: number;
+  Quincenazos: number;
   ValorRecaudo: number;
 }
 

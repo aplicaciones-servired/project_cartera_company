@@ -19,6 +19,8 @@ export interface CarteraI {
   CuadreWeb: number;
   Anulados: number;
   Zona: string;
+  Domingueros: number;
+  Quincenazos: number;
   ValorRecaudo: number;
 }
 

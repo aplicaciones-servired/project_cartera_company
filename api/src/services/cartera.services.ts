@@ -4,7 +4,7 @@ import { buildRecaudoKey } from '../utils/funtions';
 
 const carAttr: (keyof Cartera)[] = ['EMPRESA', 'VINCULADO', 'SALDO_ANT', 'DEBITO', 'CREDITO', 'NUEVOSALDO', 'RECHAZADOS', 'ACEPTADOS', 'DIGITADOS', 'VTABNET', 'VTASIISS', 'VTASFLEX', 'VTA_S1', 'PENDIENTES_CONT']
 const sellAttr: (keyof Sellers)[] = ['DOCUMENTO', 'NOMBRES', 'NOMBRECARGO', 'CCOSTO']
-const baseAttr: (keyof Bases)[] = ['BASE', 'RASPE', 'EXCP2']
+const baseAttr: (keyof Bases)[] = ['BASE', 'RASPE', 'CATEGORIA', 'EXCP2', 'EXCP3']
 
 function absfilter(abs: boolean) {
   if (abs === false) {

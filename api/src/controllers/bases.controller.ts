@@ -8,8 +8,17 @@ import { fn } from 'sequelize';
 import { z } from 'zod';
 
 const updateBaseCategoriaSchema = z.object({
-  EXCP2: z.coerce.number().int().min(0, 'Categoría inválida')
+  CATEGORIA: z.coerce.number().int().min(0, 'Categoría inválida')
 });
+
+const updateBaseExcepcionesSchema = z
+  .object({
+    EXCP2: z.coerce.number().int().min(0, 'El valor de Domingueros debe ser mayor o igual a 0').optional(),
+    EXCP3: z.coerce.number().int().min(0, 'El valor de Quincenazos debe ser mayor o igual a 0').optional()
+  })
+  .refine((data) => data.EXCP2 !== undefined || data.EXCP3 !== undefined, {
+    message: 'Debe enviar al menos Domingueros (EXCP2) o Quincenazos (EXCP3)'
+  });
 
 export const getAllBases = async (req: Request, res: Response) => {
   try {
@@ -153,6 +162,7 @@ export const crearBase = async (req: Request, res: Response) => {
       VINCULADO: vinculado,
       EXCP2: 0,
       EXCP3: 0,
+      CATEGORIA: 0,
       LOGIN: login,
       OBSERVACION: 'Primera Asignación',
       VERSION: '0'
@@ -182,11 +192,11 @@ export const updateBaseCategoria = async (req: Request, res: Response) => {
     });
   }
 
-  const { EXCP2 } = parsed.data;
+  const { CATEGORIA } = parsed.data;
 
   try {
-    if (EXCP2 > 0) {
-      const categoria = await CategoriasBases.findByPk(EXCP2);
+    if (CATEGORIA > 0) {
+      const categoria = await CategoriasBases.findByPk(CATEGORIA);
       if (!categoria) {
         return res.status(404).json({ message: 'La categoría seleccionada no existe' });
       }
@@ -197,15 +207,52 @@ export const updateBaseCategoria = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Base no encontrada para el vinculado' });
     }
 
-    await base.update({ EXCP2 });
+    await base.update({ CATEGORIA });
 
     return res.status(200).json({
       message: 'Categoría actualizada correctamente',
       VINCULADO: vinculado,
-      EXCP2
+      CATEGORIA
     });
   } catch (error) {
     console.error('[Bases] Error en updateBaseCategoria:', error);
     return res.status(500).json({ message: 'Error al actualizar la categoría de la base' });
+  }
+}
+
+export const updateBaseExcepciones = async (req: Request, res: Response) => {
+  const vinculado = String(req.params.id ?? '').trim();
+  if (!vinculado) {
+    return res.status(400).json({ message: 'Vinculado inválido' });
+  }
+
+  const parsed = updateBaseExcepcionesSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      message: parsed.error.issues[0]?.message || 'Valores inválidos'
+    });
+  }
+
+  try {
+    const base = await Bases.findByPk(vinculado);
+    if (!base) {
+      return res.status(404).json({ message: 'Base no encontrada para el vinculado' });
+    }
+
+    const updates: { EXCP2?: number; EXCP3?: number } = {};
+    if (parsed.data.EXCP2 !== undefined) updates.EXCP2 = parsed.data.EXCP2;
+    if (parsed.data.EXCP3 !== undefined) updates.EXCP3 = parsed.data.EXCP3;
+
+    await base.update(updates);
+
+    return res.status(200).json({
+      message: 'Valores actualizados correctamente',
+      VINCULADO: vinculado,
+      EXCP2: base.EXCP2,
+      EXCP3: base.EXCP3
+    });
+  } catch (error) {
+    console.error('[Bases] Error en updateBaseExcepciones:', error);
+    return res.status(500).json({ message: 'Error al actualizar Domingueros / Quincenazos' });
   }
 }

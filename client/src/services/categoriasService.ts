@@ -40,6 +40,18 @@ export const deleteCategoria = async (id: number): Promise<void> => {
   await axios.delete(`${API_URL}/categorias/${id}`)
 }
 
-export const updateBaseCategoria = async (vinculado: string, excp2: number): Promise<void> => {
-  await axios.put(`${API_URL}/bases/${encodeURIComponent(vinculado)}/categoria`, { EXCP2: excp2 })
+export interface UpdateBaseExcepcionesPayload {
+  EXCP2?: number
+  EXCP3?: number
+}
+
+export const updateBaseCategoria = async (vinculado: string, categoriaId: number): Promise<void> => {
+  await axios.put(`${API_URL}/bases/${encodeURIComponent(vinculado)}/categoria`, { CATEGORIA: categoriaId })
+}
+
+export const updateBaseExcepciones = async (
+  vinculado: string,
+  payload: UpdateBaseExcepcionesPayload
+): Promise<void> => {
+  await axios.put(`${API_URL}/bases/${encodeURIComponent(vinculado)}/excepciones`, payload)
 }
