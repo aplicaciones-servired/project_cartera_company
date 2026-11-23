@@ -1,10 +1,10 @@
-import { Bases, Cartera, Recaudo, Sellers } from '../model'
+import { Bases, Cartera, CategoriasBases, Recaudo, Sellers } from '../model'
 import { col, fn, Op, where } from 'sequelize';
 import { buildRecaudoKey } from '../utils/funtions';
 
 const carAttr: (keyof Cartera)[] = ['EMPRESA', 'VINCULADO', 'SALDO_ANT', 'DEBITO', 'CREDITO', 'NUEVOSALDO', 'RECHAZADOS', 'ACEPTADOS', 'DIGITADOS', 'VTABNET', 'VTASIISS', 'VTASFLEX', 'VTA_S1', 'PENDIENTES_CONT']
 const sellAttr: (keyof Sellers)[] = ['DOCUMENTO', 'NOMBRES', 'NOMBRECARGO', 'CCOSTO']
-const baseAttr: (keyof Bases)[] = ['BASE', 'RASPE']
+const baseAttr: (keyof Bases)[] = ['BASE', 'RASPE', 'EXCP2']
 
 function absfilter(abs: boolean) {
   if (abs === false) {
@@ -66,4 +66,24 @@ export async function RecaudoValoresHoyService(empresa: string): Promise<Map<str
   }
 
   return valorPorVinculado;
+}
+
+/**
+ * Obtiene un mapa de ID -> NOMBRE desde CATEGORIAS_BASES.
+ */
+export async function CategoriasMapService(): Promise<Map<number, string>> {
+  const categorias = await CategoriasBases.findAll({
+    attributes: ['ID', 'NOMBRE'],
+    raw: true
+  });
+
+  const categoriaPorId = new Map<number, string>();
+  for (const cat of categorias) {
+    const id = Number(cat.ID);
+    if (Number.isFinite(id) && cat.NOMBRE) {
+      categoriaPorId.set(id, cat.NOMBRE);
+    }
+  }
+
+  return categoriaPorId;
 }

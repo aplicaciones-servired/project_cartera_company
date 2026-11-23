@@ -19,6 +19,7 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
               <TableHeaderCell>N° Cédula</TableHeaderCell>
               <TableHeaderCell>Nombres</TableHeaderCell>
               <TableHeaderCell>Cargo</TableHeaderCell>
+              <TableHeaderCell>Categoría</TableHeaderCell>
               <TableHeaderCell>Zona</TableHeaderCell>
               <TableHeaderCell>Base</TableHeaderCell>
               <TableHeaderCell>Valor Recaudo</TableHeaderCell>
@@ -46,6 +47,7 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
                 <TableCell>{item.Vinculado}</TableCell>
                 <TableCell className=''>{item.Nombres || 'No Registrado Bnet'}</TableCell>
                 <TableCell>{item.Cargo}</TableCell>
+                <TableCell>{item.Categoria || 'No tiene categoría'}</TableCell>
                 <TableCell>{item.Zona}</TableCell>
                 <TableCell>{formatValue(item.Base)}</TableCell>
                 <TableCell>

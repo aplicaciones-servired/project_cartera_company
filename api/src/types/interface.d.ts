@@ -20,6 +20,7 @@ export interface MappedResult {
   Vinculado: string;
   Nombres: string;
   Cargo: string;
+  Categoria: string;
   Base: number;
   SaldoAnt: number;
   Debito: number;

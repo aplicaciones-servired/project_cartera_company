@@ -28,7 +28,8 @@ const generateExcelData = (datos: CarteraI[]): unknown[] => {
       P: 'CUADRE WEB',
       Q: 'ANULADOS',
       R: 'ZONA',
-      S: 'VALOR RECAUDO'
+      S: 'VALOR RECAUDO',
+      T: 'CATEGORÍA'
     }
   ]
 
@@ -51,7 +52,8 @@ const generateExcelData = (datos: CarteraI[]): unknown[] => {
     P: it.CuadreWeb.toString(),
     Q: it.Anulados.toString(),
     R: it.Zona,
-    S: (it.ValorRecaudo ?? 0).toString()
+    S: (it.ValorRecaudo ?? 0).toString(),
+    T: it.Categoria || 'No tiene categoría'
   }))
 
   return [...titulo, ...headers, ...rows]
@@ -67,7 +69,7 @@ const createExcelFile = (data: unknown[]): void => {
     { width: 10 }, { width: 10 }, { width: 30 }, { width: 10 }, { width: 20 },
     { width: 10 }, { width: 10 }, { width: 20 }, { width: 10 }, { width: 10 },
     { width: 10 }, { width: 10 }, { width: 10 }, { width: 10 }, { width: 10 },
-    { width: 10 }, { width: 10 }, { width: 12 }, { width: 16 }
+    { width: 10 }, { width: 10 }, { width: 12 }, { width: 16 }, { width: 20 }
   ]
 
   hoja['!cols'] = colWidths

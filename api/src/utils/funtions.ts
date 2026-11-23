@@ -28,16 +28,25 @@ export function buildRecaudoKey(
   return `${String(empresa ?? '').trim()}|${String(vinculado ?? '').trim()}`;
 }
 
-export function mapCarteraResults(results: any, recaudoValoresMap?: Map<string, number>) {
+export function mapCarteraResults(
+  results: any,
+  recaudoValoresMap?: Map<string, number>,
+  categoriasMap?: Map<number, string>
+) {
   return results.map((item: any) => {
     const recaudoKey = buildRecaudoKey(item.EMPRESA, item.VINCULADO);
     const valorRecaudo = recaudoValoresMap?.get(recaudoKey) ?? 0;
+    const categoriaId = Number(item.Basis?.EXCP2 ?? 0);
+    const categoria = categoriaId > 0
+      ? (categoriasMap?.get(categoriaId) || 'No tiene categoría')
+      : 'No tiene categoría';
 
     return {
       Empresa: item.EMPRESA === '101' ? 'Servired' : 'Multired',
       Vinculado: item.VINCULADO,
       Nombres: item.Seller?.NOMBRES,
       Cargo: item.Seller?.NOMBRECARGO || 'No Registrado Bnet',
+      Categoria: categoria,
       Base: item.Basis?.BASE || 0,
       Raspe: item.Basis?.RASPE || 0,
       SaldoAnt: item.SALDO_ANT,

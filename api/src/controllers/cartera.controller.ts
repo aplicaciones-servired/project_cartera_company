@@ -1,4 +1,4 @@
-import { CarteraDataServices, RecaudoValoresHoyService } from "../services/cartera.services";
+import { CarteraDataServices, CategoriasMapService, RecaudoValoresHoyService } from "../services/cartera.services";
 import { calcularNuevoSaldo, calculateCartera, mapCarteraResults } from "../utils/funtions";
 import { getMngrPool } from "../connections/mngr";
 import { executeWithTimeout, getConnectionSafe } from "../utils/oracleHelper";
@@ -299,11 +299,12 @@ export const getCartera = async (req: Request, res: Response) => {
   const absBool = abs === "true" ? true : false;
 
   try {
-    const [results, recaudoValoresMap] = await Promise.all([
+    const [results, recaudoValoresMap, categoriasMap] = await Promise.all([
       CarteraDataServices(empresa as string, absBool),
       RecaudoValoresHoyService(empresa as string),
+      CategoriasMapService(),
     ]);
-    const mapeado = mapCarteraResults(results, recaudoValoresMap);
+    const mapeado = mapCarteraResults(results, recaudoValoresMap, categoriasMap);
     res.status(200).json(mapeado);
   } catch (error) {
     console.error(error);

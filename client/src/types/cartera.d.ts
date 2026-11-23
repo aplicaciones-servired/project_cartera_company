@@ -3,6 +3,7 @@ export interface CarteraI {
   Vinculado: string;
   Nombres: string;
   Cargo: string;
+  Categoria: string;
   Base: number;
   Raspe: number;
   SaldoAnt: number;
