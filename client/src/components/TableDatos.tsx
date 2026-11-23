@@ -36,6 +36,7 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
               <TableHeaderCell>Venta Bnet</TableHeaderCell>
               <TableHeaderCell>Cuadre Web</TableHeaderCell>
               <TableHeaderCell>Anulados</TableHeaderCell>
+              <TableHeaderCell>Valor Recaudo</TableHeaderCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -89,6 +90,9 @@ export const TableDatos = ({ data, funClick, funShowInfo }: PropsCompo) => {
                 </TableCell>
                 <TableCell >
                   {formatValue(item.Anulados)}
+                </TableCell>
+                <TableCell>
+                  {formatValue(item.ValorRecaudo ?? 0)}
                 </TableCell>
               </TableRow>
             ))}

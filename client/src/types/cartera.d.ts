@@ -18,6 +18,7 @@ export interface CarteraI {
   CuadreWeb: number;
   Anulados: number;
   Zona: string;
+  ValorRecaudo: number;
 }
 
 export interface MngrReport {

@@ -33,6 +33,7 @@ export interface MappedResult {
   Vtabnet: number;
   CuadreWeb: number;
   Anulados: number;
+  ValorRecaudo: number;
 }
 
 export interface ObjectCartera {

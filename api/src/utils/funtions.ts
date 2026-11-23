@@ -21,28 +21,41 @@ export function calculateCartera(item: any): number {
   return item.SALDO_ANT - (item.Basis?.BASE || 0) - item.CREDITO + item.DEBITO;
 }
 
-export function mapCarteraResults(results: any) {
-  return results.map((item: any) => ({
-    Empresa: item.EMPRESA === '101' ? 'Servired' : 'Multired',
-    Vinculado: item.VINCULADO,
-    Nombres: item.Seller?.NOMBRES,
-    Cargo: item.Seller?.NOMBRECARGO || 'No Registrado Bnet',
-    Base: item.Basis?.BASE || 0,
-    Raspe: item.Basis?.RASPE || 0,
-    SaldoAnt: item.SALDO_ANT,
-    Debito: item.DEBITO,
-    Credito: item.CREDITO,
-    NuevoSaldo: calcularNuevoSaldo(item),
-    Cartera: calculateCartera(item),
-    Rechazados: item.RECHAZADOS,
-    Aceptados: item.ACEPTADOS,
-    PendientesCont: item.PENDIENTES_CONT,
-    Digitados: item.DIGITADOS,
-    Vtabnet: item.VTABNET,
-    CuadreWeb: item.VTASIISS,
-    Anulados: item.VTA_S1,
-    Zona: ReturnZona(item.Seller?.CCOSTO)
-  }));
+export function buildRecaudoKey(
+  empresa: string | number | null | undefined,
+  vinculado: string | number | null | undefined
+): string {
+  return `${String(empresa ?? '').trim()}|${String(vinculado ?? '').trim()}`;
+}
+
+export function mapCarteraResults(results: any, recaudoValoresMap?: Map<string, number>) {
+  return results.map((item: any) => {
+    const recaudoKey = buildRecaudoKey(item.EMPRESA, item.VINCULADO);
+    const valorRecaudo = recaudoValoresMap?.get(recaudoKey) ?? 0;
+
+    return {
+      Empresa: item.EMPRESA === '101' ? 'Servired' : 'Multired',
+      Vinculado: item.VINCULADO,
+      Nombres: item.Seller?.NOMBRES,
+      Cargo: item.Seller?.NOMBRECARGO || 'No Registrado Bnet',
+      Base: item.Basis?.BASE || 0,
+      Raspe: item.Basis?.RASPE || 0,
+      SaldoAnt: item.SALDO_ANT,
+      Debito: item.DEBITO,
+      Credito: item.CREDITO,
+      NuevoSaldo: calcularNuevoSaldo(item),
+      Cartera: calculateCartera(item),
+      Rechazados: item.RECHAZADOS,
+      Aceptados: item.ACEPTADOS,
+      PendientesCont: item.PENDIENTES_CONT,
+      Digitados: item.DIGITADOS,
+      Vtabnet: item.VTABNET,
+      CuadreWeb: item.VTASIISS,
+      Anulados: item.VTA_S1,
+      Zona: ReturnZona(item.Seller?.CCOSTO),
+      ValorRecaudo: valorRecaudo
+    };
+  });
 }
 
 export interface Resumen {
