@@ -21,21 +21,12 @@ export function calculateCartera(item: any): number {
   return item.SALDO_ANT - (item.Basis?.BASE || 0) - item.CREDITO + item.DEBITO;
 }
 
-export function buildRecaudoKey(
-  empresa: string | number | null | undefined,
-  vinculado: string | number | null | undefined
-): string {
-  return `${String(empresa ?? '').trim()}|${String(vinculado ?? '').trim()}`;
-}
-
 export function mapCarteraResults(
   results: any,
-  recaudoValoresMap?: Map<string, number>,
   categoriasMap?: Map<number, string>
 ) {
   return results.map((item: any) => {
-    const recaudoKey = buildRecaudoKey(item.EMPRESA, item.VINCULADO);
-    const valorRecaudo = recaudoValoresMap?.get(recaudoKey) ?? 0;
+    const valorRecaudo = Number(item.DIGITADOS ?? 0) || 0;
     const categoriaId = Number(item.Basis?.CATEGORIA ?? 0);
     const categoria = categoriaId > 0
       ? (categoriasMap?.get(categoriaId) || 'No tiene categoría')
